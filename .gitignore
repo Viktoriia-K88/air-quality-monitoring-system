@@ -1,0 +1,9 @@
+air-quality-app/node_modules/
+air-quality-app/.expo/
+air-quality-app/dist/
+air-quality-app/web-build/
+
+air-quality-server/node_modules/
+air-quality-server/db/*.db
+
+.env
