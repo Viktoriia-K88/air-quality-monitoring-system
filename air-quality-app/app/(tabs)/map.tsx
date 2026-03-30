@@ -1,42 +1,21 @@
 import { useDistrict } from "@/context/DistrictContext";
+import { MAPBOX_PUBLIC_TOKEN } from "@/constants/mapbox";
 import { getCurrentAirData } from "@/services/airService";
 import { CurrentAirData } from "@/types/air";
 import { getAirStatus } from "@/utils/airStatus";
+import Mapbox from "@rnmapbox/maps";
 import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import MapView, { Callout, Marker, PROVIDER_GOOGLE } from "react-native-maps";
+
+Mapbox.setAccessToken(MAPBOX_PUBLIC_TOKEN);
 
 const districtCoordinates = [
-  {
-    name: "Галицький",
-    latitude: 49.8397,
-    longitude: 24.0297,
-  },
-  {
-    name: "Залізничний",
-    latitude: 49.8305,
-    longitude: 23.9812,
-  },
-  {
-    name: "Личаківський",
-    latitude: 49.8418,
-    longitude: 24.0608,
-  },
-  {
-    name: "Сихівський",
-    latitude: 49.7989,
-    longitude: 24.0587,
-  },
-  {
-    name: "Франківський",
-    latitude: 49.8172,
-    longitude: 24.0072,
-  },
-  {
-    name: "Шевченківський",
-    latitude: 49.8673,
-    longitude: 24.0221,
-  },
+  { name: "Галицький", latitude: 49.8397, longitude: 24.0297 },
+  { name: "Залізничний", latitude: 49.8305, longitude: 23.9812 },
+  { name: "Личаківський", latitude: 49.8418, longitude: 24.0608 },
+  { name: "Сихівський", latitude: 49.7989, longitude: 24.0587 },
+  { name: "Франківський", latitude: 49.8172, longitude: 24.0072 },
+  { name: "Шевченківський", latitude: 49.8673, longitude: 24.0221 },
 ];
 
 type DistrictMapData = {
@@ -47,6 +26,7 @@ export default function MapScreen() {
   const { selectedDistrict, setSelectedDistrict } = useDistrict();
   const [districtData, setDistrictData] = useState<DistrictMapData>({});
   const [loading, setLoading] = useState(true);
+  const [activeDistrict, setActiveDistrict] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -98,14 +78,18 @@ export default function MapScreen() {
   function getMarkerColor(districtName: string) {
     const data = districtData[districtName];
 
-    if (!data) return "red";
+    if (!data) return "#ef4444";
 
     const status = getAirStatus(data.airIndex);
 
-    if (status.label === "Добрий") return "green";
-    if (status.label === "Помірний") return "orange";
-    return "red";
+    if (status.label === "Добрий") return "#22c55e";
+    if (status.label === "Помірний") return "#f59e0b";
+    return "#ef4444";
   }
+
+  const activeData = activeDistrict ? districtData[activeDistrict] : null;
+  const activeStatus =
+    activeData && activeDistrict ? getAirStatus(activeData.airIndex) : null;
 
   return (
     <View style={styles.container}>
@@ -116,62 +100,61 @@ export default function MapScreen() {
           : `Обраний район: ${selectedDistrict}`}
       </Text>
 
-      <MapView
-        style={styles.map}
-        provider={PROVIDER_GOOGLE}
-        initialRegion={{
-          latitude: 49.8397,
-          longitude: 24.0297,
-          latitudeDelta: 0.12,
-          longitudeDelta: 0.12,
-        }}
-      >
-        {districtCoordinates.map((district) => {
-          const data = districtData[district.name];
-          const airStatus = data ? getAirStatus(data.airIndex) : null;
+      <View style={styles.mapWrapper}>
+        <Mapbox.MapView style={styles.map} styleURL={Mapbox.StyleURL.Street}>
+          <Mapbox.Camera
+            zoomLevel={10.8}
+            centerCoordinate={[24.0297, 49.8397]}
+          />
 
-          return (
-            <Marker
+          {districtCoordinates.map((district) => (
+            <Mapbox.PointAnnotation
               key={district.name}
-              coordinate={{
-                latitude: district.latitude,
-                longitude: district.longitude,
+              id={district.name}
+              coordinate={[district.longitude, district.latitude]}
+              onSelected={() => {
+                setSelectedDistrict(district.name);
+                setActiveDistrict(district.name);
               }}
-              pinColor={
-                selectedDistrict === district.name
-                  ? "blue"
-                  : getMarkerColor(district.name)
-              }
-              onPress={() => setSelectedDistrict(district.name)}
             >
-              <Callout>
-                <View style={styles.callout}>
-                  <Text style={styles.calloutTitle}>{district.name} район</Text>
+              <View
+                style={[
+                  styles.marker,
+                  {
+                    backgroundColor:
+                      selectedDistrict === district.name
+                        ? "#2563eb"
+                        : getMarkerColor(district.name),
+                  },
+                ]}
+              />
+            </Mapbox.PointAnnotation>
+          ))}
+        </Mapbox.MapView>
+      </View>
 
-                  {data && airStatus ? (
-                    <>
-                      <Text style={styles.calloutText}>
-                        airIndex: {data.airIndex}
-                      </Text>
-                      <Text style={styles.calloutText}>
-                        Статус: {airStatus.label}
-                      </Text>
-                      <Text style={styles.calloutText}>
-                        Оновлено: {data.updatedAt}
-                      </Text>
-                      <Text style={styles.calloutHint}>
-                        Натисни маркер, щоб обрати район
-                      </Text>
-                    </>
-                  ) : (
-                    <Text style={styles.calloutText}>Дані недоступні</Text>
-                  )}
-                </View>
-              </Callout>
-            </Marker>
-          );
-        })}
-      </MapView>
+      {activeDistrict && (
+        <View style={styles.infoCard}>
+          <Text style={styles.infoTitle}>{activeDistrict} район</Text>
+
+          {activeData && activeStatus ? (
+            <>
+              <Text style={styles.infoText}>
+                airIndex: {activeData.airIndex}
+              </Text>
+              <Text style={styles.infoText}>Статус: {activeStatus.label}</Text>
+              <Text style={styles.infoText}>
+                Оновлено: {activeData.updatedAt}
+              </Text>
+              <Text style={styles.infoHint}>
+                Натисни інший маркер, щоб змінити район
+              </Text>
+            </>
+          ) : (
+            <Text style={styles.infoText}>Дані недоступні</Text>
+          )}
+        </View>
+      )}
     </View>
   );
 }
@@ -194,29 +177,47 @@ const styles = StyleSheet.create({
     color: "#666",
     marginBottom: 12,
   },
-  map: {
+  mapWrapper: {
     flex: 1,
     marginHorizontal: 16,
-    marginBottom: 16,
+    marginBottom: 12,
     borderRadius: 16,
+    overflow: "hidden",
   },
-  callout: {
-    width: 180,
-    padding: 4,
+  map: {
+    flex: 1,
   },
-  calloutTitle: {
-    fontSize: 15,
-    fontWeight: "600",
-    marginBottom: 6,
+  marker: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 2,
+    borderColor: "#ffffff",
   },
-  calloutText: {
-    fontSize: 13,
+  infoCard: {
+    backgroundColor: "#ffffff",
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 14,
+    padding: 14,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  infoTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    marginBottom: 8,
+  },
+  infoText: {
+    fontSize: 14,
     color: "#333",
-    marginBottom: 2,
+    marginBottom: 4,
   },
-  calloutHint: {
+  infoHint: {
     fontSize: 12,
     color: "#666",
-    marginTop: 6,
+    marginTop: 8,
   },
 });

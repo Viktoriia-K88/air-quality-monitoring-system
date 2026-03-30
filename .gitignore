@@ -6,4 +6,6 @@ air-quality-app/web-build/
 air-quality-server/node_modules/
 air-quality-server/db/*.db
 air-quality-app/google-services.json
+air-quality-app/constants/mapbox.ts
+air-quality-app/app.json.backup
 .env
