@@ -3,17 +3,98 @@ import AlertCard from "@/components/AlertCard";
 import RecommendationCard from "@/components/RecommendationCard";
 import { useDistrict } from "@/context/DistrictContext";
 import { getCurrentAirData } from "@/services/airService";
+import { registerForPushNotificationsAsync } from "@/services/registerForPushNotifications";
 import { CurrentAirData } from "@/types/air";
 import { getAirStatus } from "@/utils/airStatus";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ScrollView, StyleSheet, Text } from "react-native";
 
+const API_BASE_URL = "http://192.168.1.102:3000";
+
 export default function HomeScreen() {
-  const { selectedDistrict, isDistrictLoaded } = useDistrict();
+  const {
+    selectedDistrict,
+    watchedDistricts,
+    notificationThreshold,
+    notificationsEnabled,
+    isDistrictLoaded,
+  } = useDistrict();
+
   const [currentAirData, setCurrentAirData] = useState<CurrentAirData | null>(
     null,
   );
   const [loading, setLoading] = useState(true);
+  const pushTokenRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!isDistrictLoaded) return;
+
+    async function setupPushToken() {
+      try {
+        const token = await registerForPushNotificationsAsync();
+        if (!token) return;
+
+        pushTokenRef.current = token;
+
+        await fetch(`${API_BASE_URL}/register-push-token`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            token,
+            primaryDistrict: selectedDistrict,
+            watchDistricts: watchedDistricts,
+            threshold: notificationThreshold,
+            notificationsEnabled,
+          }),
+        });
+      } catch (error) {
+        console.log("Помилка реєстрації push token:", error);
+      }
+    }
+
+    setupPushToken();
+  }, [
+    isDistrictLoaded,
+    selectedDistrict,
+    watchedDistricts,
+    notificationThreshold,
+    notificationsEnabled,
+  ]);
+
+  useEffect(() => {
+    if (!isDistrictLoaded) return;
+    if (!pushTokenRef.current) return;
+
+    async function syncPushSettings() {
+      try {
+        await fetch(`${API_BASE_URL}/register-push-token`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            token: pushTokenRef.current,
+            primaryDistrict: selectedDistrict,
+            watchDistricts: watchedDistricts,
+            threshold: notificationThreshold,
+            notificationsEnabled,
+          }),
+        });
+      } catch (error) {
+        console.log("Помилка оновлення push settings:", error);
+      }
+    }
+
+    syncPushSettings();
+  }, [
+    selectedDistrict,
+    watchedDistricts,
+    notificationThreshold,
+    notificationsEnabled,
+    isDistrictLoaded,
+  ]);
 
   useEffect(() => {
     if (!isDistrictLoaded) return;

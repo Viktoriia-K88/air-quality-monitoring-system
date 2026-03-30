@@ -24,6 +24,17 @@ db.serialize(() => {
     )
   `);
 
+  db.run(`
+    CREATE TABLE IF NOT EXISTS push_subscriptions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      token TEXT NOT NULL UNIQUE,
+      primaryDistrict TEXT NOT NULL,
+      watchDistricts TEXT NOT NULL DEFAULT '[]',
+      threshold INTEGER NOT NULL DEFAULT 80,
+      notificationsEnabled INTEGER NOT NULL DEFAULT 1
+    )
+  `);
+
   db.all(`PRAGMA table_info(air_measurements)`, [], (err, rows) => {
     if (err) {
       console.error("Помилка перевірки структури таблиці:", err.message);

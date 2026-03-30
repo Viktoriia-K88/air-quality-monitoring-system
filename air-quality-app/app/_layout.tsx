@@ -9,6 +9,16 @@ import "react-native-reanimated";
 
 import { DistrictProvider } from "@/context/DistrictContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import * as Notifications from "expo-notifications";
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
 
 export const unstable_settings = {
   anchor: "(tabs)",

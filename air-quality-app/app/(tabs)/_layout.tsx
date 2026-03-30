@@ -45,6 +45,19 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="details"
+        options={{
+          title: "Деталі",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons
+              name="information-circle"
+              size={size ?? 24}
+              color={color}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="settings"
         options={{
           title: "Налаштування",
