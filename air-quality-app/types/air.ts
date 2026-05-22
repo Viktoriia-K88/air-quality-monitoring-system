@@ -10,6 +10,7 @@ export type CurrentAirData = {
 export type HistoryAirItem = {
   id: string;
   district: string;
+  updatedAt: string;
   time: string;
   value: number;
 };

@@ -2,8 +2,21 @@ const express = require("express");
 const router = express.Router();
 const db = require("../db/database");
 
-const MAX_HISTORY_LENGTH = 20;
+const MAX_HISTORY_LENGTH = 200;
 const ALERT_THRESHOLD = 80;
+
+function formatTime(value) {
+  const date = new Date(value);
+
+  if (isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleTimeString("uk-UA", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 async function sendExpoPushNotification(token, title, body, data = {}) {
   if (!token || !token.startsWith("ExponentPushToken")) {
@@ -127,7 +140,7 @@ router.get("/current", (req, res) => {
         city: "Львів",
         district: district || "Сихівський",
         airIndex: 67,
-        updatedAt: "15:30",
+        updatedAt: new Date().toISOString(),
         alert: false,
         alertMessage: "",
       });
@@ -144,7 +157,7 @@ router.get("/history", (req, res) => {
   const district = req.query.district;
 
   let query = `
-    SELECT id, district, updatedAt as time, airIndex as value
+    SELECT id, district, updatedAt, airIndex as value
     FROM air_measurements
   `;
   const params = [];
@@ -162,7 +175,15 @@ router.get("/history", (req, res) => {
       return res.status(500).json({ message: err.message });
     }
 
-    res.json(rows.reverse());
+    const formattedRows = rows.reverse().map((row) => ({
+      id: String(row.id),
+      district: row.district,
+      updatedAt: row.updatedAt,
+      time: formatTime(row.updatedAt),
+      value: row.value,
+    }));
+
+    res.json(formattedRows);
   });
 });
 
@@ -260,8 +281,9 @@ router.post("/register-push-token", (req, res) => {
         return res.status(500).json({ message: err.message });
       }
 
-      res.status(200).json({
-        message: "Push settings saved successfully",
+      res.status(201).json({
+        message: "Push token registered successfully",
+        subscriptionId: this.lastID,
       });
     },
   );

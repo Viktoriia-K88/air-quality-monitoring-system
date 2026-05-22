@@ -3,8 +3,8 @@ import { Platform } from "react-native";
 
 const API_BASE_URL =
   Platform.OS === "android"
-    ? "http://192.168.1.100:3000"
-    : "http://192.168.1.100:3000";
+    ? "http://192.168.1.102:3000"
+    : "http://192.168.1.102:3000";
 
 export async function getCurrentAirData(
   district?: string,

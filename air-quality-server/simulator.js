@@ -88,11 +88,7 @@ async function sendAirData() {
   const district = getRandomDistrict();
 
   const now = new Date();
-  const updatedAt = now.toLocaleTimeString("uk-UA", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
+  const updatedAt = now.toISOString();
 
   const data = {
     city: "Львів",

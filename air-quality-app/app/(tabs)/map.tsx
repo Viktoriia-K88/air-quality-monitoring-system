@@ -78,7 +78,7 @@ export default function MapScreen() {
   function getMarkerColor(districtName: string) {
     const data = districtData[districtName];
 
-    if (!data) return "#ef4444";
+    if (!data) return "#9ca3af";
 
     const status = getAirStatus(data.airIndex);
 
@@ -109,7 +109,7 @@ export default function MapScreen() {
 
           {districtCoordinates.map((district) => (
             <Mapbox.PointAnnotation
-              key={district.name}
+              key={`${district.name}-${selectedDistrict}-${districtData[district.name]?.airIndex ?? "no-data"}`}
               id={district.name}
               coordinate={[district.longitude, district.latitude]}
               onSelected={() => {
@@ -144,7 +144,11 @@ export default function MapScreen() {
               </Text>
               <Text style={styles.infoText}>Статус: {activeStatus.label}</Text>
               <Text style={styles.infoText}>
-                Оновлено: {activeData.updatedAt}
+                Оновлено:{" "}
+                {new Date(activeData.updatedAt).toLocaleTimeString("uk-UA", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
               </Text>
               <Text style={styles.infoHint}>
                 Натисни інший маркер, щоб змінити район

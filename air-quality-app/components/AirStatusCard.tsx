@@ -8,6 +8,19 @@ type AirStatusCardProps = {
   updatedAt: string;
 };
 
+function formatTime(value: string) {
+  const date = new Date(value);
+
+  if (isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleTimeString("uk-UA", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 export default function AirStatusCard({
   city,
   airIndex,
@@ -27,7 +40,7 @@ export default function AirStatusCard({
       <Text style={[styles.status, { color: statusColor }]}>{statusLabel}</Text>
 
       <Text style={styles.label}>Останнє оновлення</Text>
-      <Text style={styles.value}>{updatedAt}</Text>
+      <Text style={styles.value}>{formatTime(updatedAt)}</Text>
     </View>
   );
 }
