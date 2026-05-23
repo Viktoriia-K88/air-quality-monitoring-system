@@ -1,17 +1,15 @@
+import AppCard from "@/components/AppCard";
+import AppSelectModal from "@/components/AppSelectModal";
+import ScreenContainer from "@/components/ScreenContainer";
 import { districts, useDistrict } from "@/context/DistrictContext";
-import { Picker } from "@react-native-picker/picker";
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  View,
-} from "react-native";
+import { useAppColors } from "@/hooks/useAppColors";
+import { Pressable, StyleSheet, Switch, Text, View } from "react-native";
 
 const thresholdOptions = [60, 70, 80, 90, 100];
 
 export default function SettingsScreen() {
+  const colors = useAppColors();
+
   const {
     selectedDistrict,
     setSelectedDistrict,
@@ -34,59 +32,111 @@ export default function SettingsScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>Налаштування</Text>
+    <ScreenContainer>
+      <Text style={[styles.title, { color: colors.text }]}>Налаштування</Text>
 
-      <View style={styles.card}>
-        <Text style={styles.label}>Сповіщення</Text>
-        <Switch
-          value={notificationsEnabled}
-          onValueChange={setNotificationsEnabled}
+      <AppCard>
+        <View style={styles.heroTop}>
+          <View style={styles.heroTextBlock}>
+            <Text style={[styles.heroTitle, { color: colors.text }]}>
+              Сповіщення
+            </Text>
+            <Text style={[styles.heroText, { color: colors.textSecondary }]}>
+              Керуй попередженнями про погіршення якості повітря у вибраних
+              районах.
+            </Text>
+          </View>
+
+          <Switch
+            value={notificationsEnabled}
+            onValueChange={setNotificationsEnabled}
+            trackColor={{
+              false: colors.border,
+              true: colors.primarySoft,
+            }}
+            thumbColor={notificationsEnabled ? colors.primary : "#f4f4f5"}
+          />
+        </View>
+
+        <View
+          style={[
+            styles.statusPill,
+            {
+              backgroundColor: notificationsEnabled
+                ? colors.primarySoft
+                : colors.surfaceSecondary,
+              borderColor: colors.cardBorder,
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.statusPillText,
+              {
+                color: notificationsEnabled
+                  ? colors.primary
+                  : colors.textSecondary,
+              },
+            ]}
+          >
+            {notificationsEnabled
+              ? "Сповіщення увімкнені"
+              : "Сповіщення вимкнені"}
+          </Text>
+        </View>
+      </AppCard>
+
+      <AppCard>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>
+          Локація
+        </Text>
+
+        <View style={styles.infoBlock}>
+          <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>
+            Місто
+          </Text>
+          <Text style={[styles.infoValue, { color: colors.text }]}>Львів</Text>
+        </View>
+
+        <Text style={[styles.fieldLabel, { color: colors.text }]}>
+          Основний район
+        </Text>
+
+        <AppSelectModal
+          label="Обери район"
+          value={selectedDistrict}
+          options={districts.map((district) => ({
+            label: district,
+            value: district,
+          }))}
+          onChange={(value) => setSelectedDistrict(String(value))}
         />
-      </View>
+      </AppCard>
 
-      <Text style={styles.info}>
-        {notificationsEnabled ? "Сповіщення увімкнені" : "Сповіщення вимкнені"}
-      </Text>
+      <AppCard>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>
+          Поріг сповіщення
+        </Text>
+        <Text style={[styles.sectionHelper, { color: colors.textSecondary }]}>
+          Сповіщення приходитимуть, якщо значення перевищить обраний рівень.
+        </Text>
 
-      <View style={styles.card}>
-        <Text style={styles.label}>Місто</Text>
-        <Text style={styles.value}>Львів</Text>
-      </View>
+        <AppSelectModal
+          label="Обери поріг"
+          value={notificationThreshold}
+          options={thresholdOptions.map((value) => ({
+            label: String(value),
+            value,
+          }))}
+          onChange={(value) => setNotificationThreshold(Number(value))}
+        />
+      </AppCard>
 
-      <View style={styles.card}>
-        <Text style={styles.label}>Основний район</Text>
-        <View style={styles.pickerWrapper}>
-          <Picker
-            selectedValue={selectedDistrict}
-            onValueChange={(itemValue) => setSelectedDistrict(itemValue)}
-          >
-            {districts.map((district) => (
-              <Picker.Item key={district} label={district} value={district} />
-            ))}
-          </Picker>
-        </View>
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.label}>Поріг сповіщення</Text>
-        <View style={styles.pickerWrapper}>
-          <Picker
-            selectedValue={notificationThreshold}
-            onValueChange={(itemValue) =>
-              setNotificationThreshold(Number(itemValue))
-            }
-          >
-            {thresholdOptions.map((value) => (
-              <Picker.Item key={value} label={`${value}`} value={value} />
-            ))}
-          </Picker>
-        </View>
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.label}>Райони спостереження</Text>
-        <Text style={styles.helperText}>
+      <AppCard>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>
+          Райони спостереження
+        </Text>
+        <Text style={[styles.sectionHelper, { color: colors.textSecondary }]}>
           Обери додаткові райони, за якими хочеш стежити.
         </Text>
 
@@ -102,13 +152,23 @@ export default function SettingsScreen() {
                   onPress={() => toggleWatchedDistrict(district)}
                   style={[
                     styles.watchItem,
-                    isSelected && styles.watchItemSelected,
+                    {
+                      borderColor: isSelected
+                        ? colors.primary
+                        : colors.cardBorder,
+                      backgroundColor: isSelected
+                        ? colors.primarySoft
+                        : colors.surfaceSecondary,
+                    },
                   ]}
                 >
                   <Text
                     style={[
                       styles.watchItemText,
-                      isSelected && styles.watchItemTextSelected,
+                      {
+                        color: isSelected ? colors.primary : colors.text,
+                        fontWeight: isSelected ? "700" : "500",
+                      },
                     ]}
                   >
                     {district}
@@ -117,87 +177,87 @@ export default function SettingsScreen() {
               );
             })}
         </View>
-      </View>
-    </ScrollView>
+      </AppCard>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f5f7fa",
-  },
-  content: {
-    padding: 20,
-    paddingTop: 40,
-    paddingBottom: 30,
-  },
   title: {
-    fontSize: 26,
+    fontSize: 30,
     fontWeight: "700",
     marginBottom: 20,
     textAlign: "center",
   },
-  card: {
-    backgroundColor: "#ffffff",
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
+  heroTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 12,
+    marginBottom: 14,
   },
-  label: {
-    fontSize: 18,
-    color: "#111",
-    marginBottom: 12,
+  heroTextBlock: {
+    flex: 1,
   },
-  value: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: "#111",
+  heroTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+    marginBottom: 8,
   },
-  info: {
+  heroText: {
     fontSize: 15,
-    color: "#666",
-    marginBottom: 16,
-    marginLeft: 6,
+    lineHeight: 22,
   },
-  pickerWrapper: {
+  statusPill: {
+    alignSelf: "flex-start",
     borderWidth: 1,
-    borderColor: "#d9d9d9",
-    borderRadius: 10,
-    overflow: "hidden",
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
   },
-  helperText: {
+  statusPillText: {
     fontSize: 14,
-    color: "#666",
+    fontWeight: "700",
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "700",
     marginBottom: 12,
+  },
+  sectionHelper: {
+    fontSize: 14,
+    lineHeight: 21,
+    marginBottom: 12,
+  },
+  infoBlock: {
+    marginBottom: 16,
+  },
+  infoLabel: {
+    fontSize: 15,
+    marginBottom: 6,
+  },
+  infoValue: {
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  fieldLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 10,
   },
   watchList: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 10,
+    marginTop: 6,
   },
   watchItem: {
-    paddingVertical: 10,
+    paddingVertical: 11,
     paddingHorizontal: 14,
-    borderRadius: 10,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#cfcfcf",
-    backgroundColor: "#f7f7f7",
-  },
-  watchItemSelected: {
-    backgroundColor: "#dceeff",
-    borderColor: "#4a90e2",
   },
   watchItemText: {
     fontSize: 15,
-    color: "#333",
-  },
-  watchItemTextSelected: {
-    color: "#0f5db8",
-    fontWeight: "600",
   },
 });

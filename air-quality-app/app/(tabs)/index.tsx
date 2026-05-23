@@ -1,17 +1,26 @@
 import AirStatusCard from "@/components/AirStatusCard";
-import AlertCard from "@/components/AlertCard";
 import RecommendationCard from "@/components/RecommendationCard";
+import ScreenContainer from "@/components/ScreenContainer";
 import { useDistrict } from "@/context/DistrictContext";
+import { useAppColors } from "@/hooks/useAppColors";
 import { getCurrentAirData } from "@/services/airService";
 import { registerForPushNotificationsAsync } from "@/services/registerForPushNotifications";
 import { CurrentAirData } from "@/types/air";
 import { getAirStatus } from "@/utils/airStatus";
 import { useEffect, useRef, useState } from "react";
-import { ScrollView, StyleSheet, Text } from "react-native";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 
 const API_BASE_URL = "http://192.168.1.102:3000";
 
 export default function HomeScreen() {
+  const colors = useAppColors();
+  const isLight = colors.background === "#f5f7fa";
+
+  const homeColors = {
+    circleBg: isLight ? "#ffffff" : "#182a4a",
+    metricBg: isLight ? "#ffffff" : "#1b2f52",
+  };
+
   const {
     selectedDistrict,
     watchedDistricts,
@@ -107,6 +116,7 @@ export default function HomeScreen() {
         setCurrentAirData(data);
       } catch (error) {
         console.log("Помилка завантаження current data:", error);
+        setCurrentAirData(null);
       } finally {
         setLoading(false);
       }
@@ -123,67 +133,160 @@ export default function HomeScreen() {
   }, [selectedDistrict, isDistrictLoaded]);
 
   if (!isDistrictLoaded || loading) {
-    return <Text style={styles.message}>Завантаження...</Text>;
+    return (
+      <View style={[styles.centered, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+          Завантаження даних...
+        </Text>
+      </View>
+    );
   }
 
   if (!currentAirData) {
-    return <Text style={styles.message}>Не вдалося отримати дані.</Text>;
+    return (
+      <View style={[styles.centered, { backgroundColor: colors.background }]}>
+        <Text style={[styles.errorText, { color: colors.danger }]}>
+          Не вдалося отримати дані
+        </Text>
+      </View>
+    );
   }
 
   const airStatus = getAirStatus(currentAirData.airIndex);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>Моніторинг якості повітря</Text>
-      <Text style={styles.subtitle}>
-        {currentAirData.city}, {currentAirData.district} район
-      </Text>
+    <ScreenContainer>
+      <View style={styles.header}>
+        <Text style={[styles.screenTitle, { color: colors.text }]}>
+          Якість повітря
+        </Text>
+        <Text style={[styles.screenSubtitle, { color: colors.textSecondary }]}>
+          {currentAirData.city}, {currentAirData.district} район
+        </Text>
+      </View>
 
       <AirStatusCard
-        city={currentAirData.city}
         airIndex={currentAirData.airIndex}
         statusLabel={airStatus.label}
         statusColor={airStatus.color}
         updatedAt={currentAirData.updatedAt}
+        backgroundColor={homeColors.circleBg}
       />
 
-      {currentAirData.alert && (
-        <AlertCard message={currentAirData.alertMessage} />
-      )}
+      <View style={styles.metricsRow}>
+        <View
+          style={[
+            styles.metricCard,
+            {
+              backgroundColor: homeColors.metricBg,
+              borderColor: isLight ? "#dbe7ff" : "#355386",
+              shadowColor: colors.shadow,
+            },
+          ]}
+        >
+          <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>
+            PM2.5
+          </Text>
+          <Text style={[styles.metricValue, { color: colors.text }]}>
+            {Math.round(currentAirData.airIndex * 0.55)}
+          </Text>
+        </View>
 
-      <RecommendationCard text={airStatus.recommendation} />
-    </ScrollView>
+        <View
+          style={[
+            styles.metricCard,
+            {
+              backgroundColor: homeColors.metricBg,
+              borderColor: isLight ? "#dbe7ff" : "#355386",
+              shadowColor: colors.shadow,
+            },
+          ]}
+        >
+          <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>
+            PM10
+          </Text>
+          <Text style={[styles.metricValue, { color: colors.text }]}>
+            {currentAirData.airIndex}
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.recommendationWrap}>
+        <RecommendationCard
+          title={currentAirData.alert ? "Попередження" : "Рекомендація"}
+          text={
+            currentAirData.alert
+              ? currentAirData.alertMessage
+              : airStatus.recommendation
+          }
+          type={currentAirData.alert ? "warning" : "success"}
+        />
+      </View>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  centered: {
     flex: 1,
-    backgroundColor: "#f5f7fa",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
   },
-  content: {
-    padding: 20,
-    paddingTop: 60,
-    paddingBottom: 30,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: "700",
-    textAlign: "center",
-    marginBottom: 8,
-  },
-  subtitle: {
+  loadingText: {
+    marginTop: 12,
     fontSize: 16,
-    textAlign: "center",
-    color: "#666",
-    marginBottom: 20,
   },
-  message: {
-    flex: 1,
-    textAlign: "center",
-    textAlignVertical: "center",
+  errorText: {
     fontSize: 18,
-    color: "#444",
-    backgroundColor: "#f5f7fa",
+    fontWeight: "600",
+  },
+  header: {
+    marginBottom: 18,
+    alignItems: "center",
+  },
+  screenTitle: {
+    fontSize: 30,
+    fontWeight: "800",
+    marginBottom: 6,
+    textAlign: "center",
+  },
+  screenSubtitle: {
+    fontSize: 17,
+    textAlign: "center",
+  },
+  metricsRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 12,
+    marginTop: 12,
+  },
+  metricCard: {
+    flex: 1,
+    maxWidth: 128,
+    minHeight: 76,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  metricLabel: {
+    fontSize: 12,
+    marginBottom: 5,
+    textAlign: "center",
+  },
+  metricValue: {
+    fontSize: 18,
+    fontWeight: "800",
+    textAlign: "center",
+  },
+  recommendationWrap: {
+    marginTop: 22,
   },
 });

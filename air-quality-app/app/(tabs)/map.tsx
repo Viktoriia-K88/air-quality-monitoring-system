@@ -1,11 +1,13 @@
-import { useDistrict } from "@/context/DistrictContext";
+import AppCard from "@/components/AppCard";
 import { MAPBOX_PUBLIC_TOKEN } from "@/constants/mapbox";
+import { useDistrict } from "@/context/DistrictContext";
+import { useAppColors } from "@/hooks/useAppColors";
 import { getCurrentAirData } from "@/services/airService";
 import { CurrentAirData } from "@/types/air";
 import { getAirStatus } from "@/utils/airStatus";
 import Mapbox from "@rnmapbox/maps";
 import { useEffect, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 Mapbox.setAccessToken(MAPBOX_PUBLIC_TOKEN);
 
@@ -22,7 +24,19 @@ type DistrictMapData = {
   [district: string]: CurrentAirData | null;
 };
 
+function formatTime(value: string) {
+  const date = new Date(value);
+
+  if (isNaN(date.getTime())) return value;
+
+  return date.toLocaleTimeString("uk-UA", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 export default function MapScreen() {
+  const colors = useAppColors();
   const { selectedDistrict, setSelectedDistrict } = useDistrict();
   const [districtData, setDistrictData] = useState<DistrictMapData>({});
   const [loading, setLoading] = useState(true);
@@ -76,14 +90,10 @@ export default function MapScreen() {
   }, []);
 
   function getMarkerColor(districtName: string) {
-    const data = districtData[districtName];
+    if (selectedDistrict === districtName) {
+      return "#3b82f6";
+    }
 
-    if (!data) return "#9ca3af";
-
-    const status = getAirStatus(data.airIndex);
-
-    if (status.label === "Добрий") return "#22c55e";
-    if (status.label === "Помірний") return "#f59e0b";
     return "#ef4444";
   }
 
@@ -92,15 +102,25 @@ export default function MapScreen() {
     activeData && activeDistrict ? getAirStatus(activeData.airIndex) : null;
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Мапа районів Львова</Text>
-      <Text style={styles.subtitle}>
-        {loading
-          ? "Завантаження даних..."
-          : `Обраний район: ${selectedDistrict}`}
-      </Text>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={styles.header}>
+        <Text style={[styles.title, { color: colors.text }]}>Мапа</Text>
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+          {loading
+            ? "Завантаження даних..."
+            : `Обраний район: ${selectedDistrict}`}
+        </Text>
+      </View>
 
-      <View style={styles.mapWrapper}>
+      <View
+        style={[
+          styles.mapWrapper,
+          {
+            borderColor: colors.cardBorder,
+            backgroundColor: colors.surface,
+          },
+        ]}
+      >
         <Mapbox.MapView style={styles.map} styleURL={Mapbox.StyleURL.Street}>
           <Mapbox.Camera
             zoomLevel={10.8}
@@ -108,56 +128,93 @@ export default function MapScreen() {
           />
 
           {districtCoordinates.map((district) => (
-            <Mapbox.PointAnnotation
+            <Mapbox.MarkerView
               key={`${district.name}-${selectedDistrict}-${districtData[district.name]?.airIndex ?? "no-data"}`}
               id={district.name}
               coordinate={[district.longitude, district.latitude]}
-              onSelected={() => {
-                setSelectedDistrict(district.name);
-                setActiveDistrict(district.name);
-              }}
+              anchor={{ x: 0.5, y: 0.5 }}
             >
-              <View
-                style={[
-                  styles.marker,
-                  {
-                    backgroundColor:
-                      selectedDistrict === district.name
-                        ? "#2563eb"
-                        : getMarkerColor(district.name),
-                  },
-                ]}
-              />
-            </Mapbox.PointAnnotation>
+              <Pressable
+                onPress={() => {
+                  setSelectedDistrict(district.name);
+                  setActiveDistrict(district.name);
+                }}
+              >
+                <View
+                  style={[
+                    styles.marker,
+                    selectedDistrict === district.name && styles.markerSelected,
+                    {
+                      backgroundColor: getMarkerColor(district.name),
+                    },
+                  ]}
+                />
+              </Pressable>
+            </Mapbox.MarkerView>
           ))}
         </Mapbox.MapView>
       </View>
 
       {activeDistrict && (
-        <View style={styles.infoCard}>
-          <Text style={styles.infoTitle}>{activeDistrict} район</Text>
+        <AppCard>
+          <View style={styles.infoHeader}>
+            <View style={styles.infoHeaderLeft}>
+              <Text style={[styles.infoTitle, { color: colors.text }]}>
+                {activeDistrict} район
+              </Text>
+              <Text style={[styles.infoSub, { color: colors.textSecondary }]}>
+                Львів
+              </Text>
+            </View>
+          </View>
 
           {activeData && activeStatus ? (
             <>
-              <Text style={styles.infoText}>
-                airIndex: {activeData.airIndex}
-              </Text>
-              <Text style={styles.infoText}>Статус: {activeStatus.label}</Text>
-              <Text style={styles.infoText}>
-                Оновлено:{" "}
-                {new Date(activeData.updatedAt).toLocaleTimeString("uk-UA", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </Text>
-              <Text style={styles.infoHint}>
+              <View style={styles.infoRow}>
+                <Text
+                  style={[styles.infoLabel, { color: colors.textSecondary }]}
+                >
+                  airIndex
+                </Text>
+                <Text style={[styles.infoValue, { color: colors.text }]}>
+                  {activeData.airIndex}
+                </Text>
+              </View>
+
+              <View style={styles.infoRow}>
+                <Text
+                  style={[styles.infoLabel, { color: colors.textSecondary }]}
+                >
+                  Статус
+                </Text>
+                <Text
+                  style={[styles.infoValueSmall, { color: activeStatus.color }]}
+                >
+                  {activeStatus.label}
+                </Text>
+              </View>
+
+              <View style={styles.infoRow}>
+                <Text
+                  style={[styles.infoLabel, { color: colors.textSecondary }]}
+                >
+                  Оновлено
+                </Text>
+                <Text style={[styles.infoValueSmall, { color: colors.text }]}>
+                  {formatTime(activeData.updatedAt)}
+                </Text>
+              </View>
+
+              <Text style={[styles.infoHint, { color: colors.textSecondary }]}>
                 Натисни інший маркер, щоб змінити район
               </Text>
             </>
           ) : (
-            <Text style={styles.infoText}>Дані недоступні</Text>
+            <Text style={[styles.infoHint, { color: colors.textSecondary }]}>
+              Дані недоступні
+            </Text>
           )}
-        </View>
+        </AppCard>
       )}
     </View>
   );
@@ -166,62 +223,83 @@ export default function MapScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f7fa",
     paddingTop: 40,
+    paddingHorizontal: 20,
+  },
+  header: {
+    marginBottom: 12,
+    alignItems: "center",
   },
   title: {
-    fontSize: 24,
+    fontSize: 30,
     fontWeight: "700",
+    marginBottom: 6,
     textAlign: "center",
-    marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
     textAlign: "center",
-    color: "#666",
-    marginBottom: 12,
   },
   mapWrapper: {
     flex: 1,
-    marginHorizontal: 16,
-    marginBottom: 12,
-    borderRadius: 16,
+    borderRadius: 22,
     overflow: "hidden",
+    marginBottom: 14,
+    borderWidth: 1,
   },
   map: {
     flex: 1,
   },
   marker: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     borderWidth: 2,
     borderColor: "#ffffff",
   },
-  infoCard: {
-    backgroundColor: "#ffffff",
-    marginHorizontal: 16,
-    marginBottom: 16,
-    borderRadius: 14,
-    padding: 14,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
+  markerSelected: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 3,
+    borderColor: "#ffffff",
+  },
+  infoHeader: {
+    marginBottom: 14,
+    alignItems: "center",
+  },
+  infoHeaderLeft: {
+    alignItems: "center",
   },
   infoTitle: {
-    fontSize: 16,
+    fontSize: 22,
     fontWeight: "700",
-    marginBottom: 8,
-  },
-  infoText: {
-    fontSize: 14,
-    color: "#333",
     marginBottom: 4,
+    textAlign: "center",
+  },
+  infoSub: {
+    fontSize: 14,
+    textAlign: "center",
+  },
+  infoRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  infoLabel: {
+    fontSize: 14,
+  },
+  infoValue: {
+    fontSize: 32,
+    fontWeight: "800",
+  },
+  infoValueSmall: {
+    fontSize: 16,
+    fontWeight: "600",
   },
   infoHint: {
-    fontSize: 12,
-    color: "#666",
-    marginTop: 8,
+    fontSize: 13,
+    marginTop: 6,
   },
 });

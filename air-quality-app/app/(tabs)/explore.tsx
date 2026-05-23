@@ -1,15 +1,19 @@
 import HistoryItemCard from "@/components/HistoryItemCard";
+import AppCard from "@/components/AppCard";
+import ScreenContainer from "@/components/ScreenContainer";
 import { useDistrict } from "@/context/DistrictContext";
+import { useAppColors } from "@/hooks/useAppColors";
 import { getHistoryAirData } from "@/services/airService";
 import { HistoryAirItem } from "@/types/air";
 import { router } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { LineChart } from "react-native-gifted-charts";
 
 type HistoryFilter = "last20" | "today" | "yesterday";
 
 export default function HistoryScreen() {
+  const colors = useAppColors();
   const { selectedDistrict, isDistrictLoaded } = useDistrict();
   const [historyAirData, setHistoryAirData] = useState<HistoryAirItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -76,10 +80,6 @@ export default function HistoryScreen() {
     }));
   }, [filteredHistoryData]);
 
-  if (!isDistrictLoaded || loading) {
-    return <Text style={styles.message}>Завантаження...</Text>;
-  }
-
   function openAnalytics() {
     router.push({
       pathname: "/analytics" as any,
@@ -90,10 +90,24 @@ export default function HistoryScreen() {
     });
   }
 
+  if (!isDistrictLoaded || loading) {
+    return (
+      <View style={[styles.centered, { backgroundColor: colors.background }]}>
+        <Text style={[styles.message, { color: colors.textSecondary }]}>
+          Завантаження...
+        </Text>
+      </View>
+    );
+  }
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Історія показників</Text>
-      <Text style={styles.subtitle}>{selectedDistrict} район</Text>
+    <ScreenContainer>
+      <View style={styles.header}>
+        <Text style={[styles.title, { color: colors.text }]}>Історія</Text>
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+          {selectedDistrict} район
+        </Text>
+      </View>
 
       <View style={styles.filtersRow}>
         <FilterButton
@@ -113,56 +127,71 @@ export default function HistoryScreen() {
         />
       </View>
 
-      <View style={styles.chartCard}>
-        <Text style={styles.chartTitle}>Короткий графік airIndex</Text>
+      <AppCard>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>
+          Динаміка airIndex
+        </Text>
 
         {chartData.length > 0 ? (
-          <LineChart
-            data={chartData}
-            areaChart
-            curved
-            thickness={2}
-            hideDataPoints
-            initialSpacing={8}
-            endSpacing={8}
-            spacing={28}
-            noOfSections={4}
-            maxValue={120}
-            height={120}
-            yAxisTextStyle={styles.axisText}
-            xAxisLabelTextStyle={styles.axisText}
-            rulesColor="#e5e5e5"
-            yAxisColor="#d9d9d9"
-            xAxisColor="#d9d9d9"
-            color="#2563eb"
-            startFillColor="rgba(37, 99, 235, 0.22)"
-            endFillColor="rgba(37, 99, 235, 0.05)"
-            startOpacity={0.9}
-            endOpacity={0.2}
-          />
+          <View style={styles.chartWrapper}>
+            <LineChart
+              data={chartData}
+              areaChart
+              curved
+              thickness={2}
+              hideDataPoints
+              initialSpacing={2}
+              endSpacing={2}
+              spacing={28}
+              adjustToWidth
+              noOfSections={4}
+              maxValue={120}
+              height={120}
+              yAxisTextStyle={{ color: colors.textSecondary, fontSize: 10 }}
+              xAxisLabelTextStyle={{
+                color: colors.textSecondary,
+                fontSize: 10,
+              }}
+              rulesColor={colors.border}
+              yAxisColor={colors.border}
+              xAxisColor={colors.border}
+              color={colors.primary}
+              startFillColor={colors.primary}
+              endFillColor={colors.primary}
+              startOpacity={0.22}
+              endOpacity={0.04}
+            />
+          </View>
         ) : (
-          <Text style={styles.emptyText}>
+          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
             Немає даних для вибраного фільтра
           </Text>
         )}
-      </View>
+      </AppCard>
 
-      <Pressable style={styles.analyticsButton} onPress={openAnalytics}>
+      <Pressable
+        style={[styles.analyticsButton, { backgroundColor: colors.primary }]}
+        onPress={openAnalytics}
+      >
         <Text style={styles.analyticsButtonText}>Відкрити аналітику</Text>
       </Pressable>
 
-      <FlatList
-        data={filteredHistoryData}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <HistoryItemCard time={item.time} value={item.value} />
+      <View style={styles.listBlock}>
+        {filteredHistoryData.length > 0 ? (
+          filteredHistoryData.map((item) => (
+            <HistoryItemCard
+              key={item.id}
+              time={item.time}
+              value={item.value}
+            />
+          ))
+        ) : (
+          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+            Історія за цим фільтром відсутня
+          </Text>
         )}
-        contentContainerStyle={styles.list}
-        ListEmptyComponent={
-          <Text style={styles.emptyText}>Історія за цим фільтром відсутня</Text>
-        }
-      />
-    </View>
+      </View>
+    </ScreenContainer>
   );
 }
 
@@ -173,15 +202,25 @@ type FilterButtonProps = {
 };
 
 function FilterButton({ title, active, onPress }: FilterButtonProps) {
+  const colors = useAppColors();
+
   return (
     <Pressable
       onPress={onPress}
-      style={[styles.filterButton, active && styles.filterButtonActive]}
+      style={[
+        styles.filterButton,
+        {
+          backgroundColor: active ? colors.primarySoft : colors.surface,
+          borderColor: active ? colors.primary : colors.cardBorder,
+        },
+      ]}
     >
       <Text
         style={[
           styles.filterButtonText,
-          active && styles.filterButtonTextActive,
+          {
+            color: active ? colors.primary : colors.textSecondary,
+          },
         ]}
       >
         {title}
@@ -191,31 +230,27 @@ function FilterButton({ title, active, onPress }: FilterButtonProps) {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  centered: {
     flex: 1,
-    backgroundColor: "#f5f7fa",
-    paddingTop: 40,
-    paddingHorizontal: 16,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  message: {
+    fontSize: 18,
+  },
+  header: {
+    marginBottom: 8,
+    alignItems: "center",
   },
   title: {
-    fontSize: 24,
+    fontSize: 30,
     fontWeight: "700",
+    marginBottom: 6,
     textAlign: "center",
-    marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
     textAlign: "center",
-    color: "#666",
-    marginBottom: 16,
-  },
-  message: {
-    flex: 1,
-    textAlign: "center",
-    textAlignVertical: "center",
-    fontSize: 18,
-    color: "#444",
-    backgroundColor: "#f5f7fa",
   },
   filtersRow: {
     flexDirection: "row",
@@ -225,48 +260,26 @@ const styles = StyleSheet.create({
   filterButton: {
     flex: 1,
     paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: "#ffffff",
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#d9d9d9",
     alignItems: "center",
-  },
-  filterButtonActive: {
-    backgroundColor: "#dceeff",
-    borderColor: "#2563eb",
   },
   filterButtonText: {
     fontSize: 14,
-    color: "#444",
-    fontWeight: "500",
+    fontWeight: "600",
   },
-  filterButtonTextActive: {
-    color: "#0f5db8",
-    fontWeight: "700",
-  },
-  chartCard: {
-    backgroundColor: "#ffffff",
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  chartTitle: {
-    fontSize: 16,
+  cardTitle: {
+    fontSize: 17,
     fontWeight: "700",
     marginBottom: 10,
   },
-  axisText: {
-    fontSize: 10,
-    color: "#666",
+  chartWrapper: {
+    overflow: "hidden",
+    borderRadius: 14,
   },
   analyticsButton: {
-    backgroundColor: "#2563eb",
-    paddingVertical: 13,
-    borderRadius: 12,
+    paddingVertical: 14,
+    borderRadius: 16,
     alignItems: "center",
     marginBottom: 14,
   },
@@ -275,12 +288,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
   },
-  list: {
-    paddingBottom: 30,
+  listBlock: {
+    marginTop: 4,
   },
   emptyText: {
     fontSize: 14,
-    color: "#666",
     textAlign: "center",
     paddingVertical: 10,
   },

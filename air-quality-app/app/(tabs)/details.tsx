@@ -1,150 +1,235 @@
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import AppCard from "@/components/AppCard";
+import ScreenContainer from "@/components/ScreenContainer";
+import { useAppColors } from "@/hooks/useAppColors";
+import { StyleSheet, Text, View } from "react-native";
+
+function LevelRow({
+  range,
+  title,
+  description,
+  color,
+  colors,
+}: {
+  range: string;
+  title: string;
+  description: string;
+  color: string;
+  colors: ReturnType<typeof useAppColors>;
+}) {
+  return (
+    <View
+      style={[
+        styles.levelRow,
+        {
+          borderColor: colors.cardBorder,
+          backgroundColor: colors.surfaceSecondary,
+        },
+      ]}
+    >
+      <View style={styles.levelLeft}>
+        <Text style={[styles.levelRange, { color }]}>{range}</Text>
+        <Text style={[styles.levelTitle, { color: colors.text }]}>{title}</Text>
+      </View>
+      <Text style={[styles.levelDescription, { color: colors.textSecondary }]}>
+        {description}
+      </Text>
+    </View>
+  );
+}
+
+function BulletItem({
+  text,
+  colors,
+}: {
+  text: string;
+  colors: ReturnType<typeof useAppColors>;
+}) {
+  return (
+    <View style={styles.bulletRow}>
+      <View style={[styles.bulletDot, { backgroundColor: colors.primary }]} />
+      <Text style={[styles.bulletText, { color: colors.text }]}>{text}</Text>
+    </View>
+  );
+}
 
 export default function DetailsScreen() {
+  const colors = useAppColors();
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>Деталі про якість повітря</Text>
+    <ScreenContainer>
+      <Text style={[styles.title, { color: colors.text }]}>Деталі</Text>
 
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Що таке AQI</Text>
-        <Text style={styles.text}>
-          AQI (Air Quality Index) — це індекс якості повітря, який
-          використовується для спрощеного відображення рівня забруднення.
-          Замість окремого показу багатьох параметрів користувачу подається одне
-          узагальнене значення, яке допомагає швидко зрозуміти, наскільки
-          безпечним є повітря в поточний момент.
+      <AppCard>
+        <Text style={[styles.heroLabel, { color: colors.textSecondary }]}>
+          AIR QUALITY INDEX
         </Text>
-        <Text style={styles.text}>
-          Чим вищий показник AQI, тим гірший стан повітря і тим більший можливий
-          негативний вплив на самопочуття людини, особливо для дітей, людей
-          похилого віку та осіб із захворюваннями дихальної системи.
+        <Text style={[styles.heroTitle, { color: colors.text }]}>
+          Що таке AQI
         </Text>
-      </View>
+        <Text style={[styles.heroText, { color: colors.text }]}>
+          AQI — це індекс якості повітря, який дозволяє одним числом показати,
+          наскільки безпечним або небезпечним є повітря в поточний момент.
+        </Text>
+        <Text style={[styles.heroText, { color: colors.textSecondary }]}>
+          Чим вищий показник, тим гірший стан повітря і тим сильніший можливий
+          вплив на самопочуття людини.
+        </Text>
+      </AppCard>
 
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>
-          Які значення вважаються безпечними
-        </Text>
-        <Text style={styles.text}>
-          У цьому застосунку використовується спрощена шкала оцінювання якості
-          повітря:
+      <AppCard>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>
+          Рівні якості повітря
         </Text>
 
-        <Text style={styles.item}>• 0–50 — добрий стан повітря.</Text>
-        <Text style={styles.item}>
-          • 51–80 — помірний стан, якість повітря прийнятна, але для чутливих
-          груп може бути небажаною при тривалому перебуванні надворі.
-        </Text>
-        <Text style={styles.item}>
-          • більше 80 — поганий стан повітря, який може бути небезпечним для
-          здоров’я.
-        </Text>
+        <LevelRow
+          range="0–50"
+          title="Добрий"
+          description="Повітря в нормі, ризик для здоров’я мінімальний."
+          color={colors.success}
+          colors={colors}
+        />
+        <LevelRow
+          range="51–80"
+          title="Помірний"
+          description="Якість прийнятна, але чутливим людям варто бути уважнішими."
+          color={colors.warning}
+          colors={colors}
+        />
+        <LevelRow
+          range="80+"
+          title="Поганий"
+          description="Повітря може бути небезпечним, варто обмежити перебування надворі."
+          color={colors.danger}
+          colors={colors}
+        />
+      </AppCard>
 
-        <Text style={styles.text}>
-          Якщо значення стає занадто високим, користувач повинен звернути увагу
-          на попередження та, за можливості, обмежити тривале перебування на
-          відкритому повітрі.
+      <AppCard>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>
+          Чому це важливо
         </Text>
-      </View>
+        <Text style={[styles.text, { color: colors.text }]}>
+          Якість повітря безпосередньо впливає на самопочуття, витривалість і
+          загальний стан здоров’я. Підвищене забруднення може викликати втому,
+          головний біль, подразнення слизових оболонок та утруднене дихання.
+        </Text>
+        <Text style={[styles.text, { color: colors.textSecondary }]}>
+          Особливо уважними мають бути діти, люди похилого віку та люди із
+          хронічними захворюваннями органів дихання.
+        </Text>
+      </AppCard>
 
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>
-          Чому важливо слідкувати за якістю повітря
-        </Text>
-        <Text style={styles.text}>
-          Якість повітря безпосередньо впливає на здоров’я, рівень активності та
-          загальне самопочуття людини. Підвищене забруднення може викликати
-          втому, головний біль, подразнення слизових оболонок, утруднене дихання
-          та погіршення стану в людей із хронічними захворюваннями.
-        </Text>
-        <Text style={styles.text}>
-          Оперативний доступ до таких даних дозволяє краще планувати пересування
-          містом, прогулянки, фізичну активність надворі та загалом більш
-          свідомо реагувати на екологічну ситуацію в окремих районах.
-        </Text>
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>
+      <AppCard>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>
           Що робити при поганому стані повітря
         </Text>
-        <Text style={styles.item}>
-          • по можливості скоротити час перебування надворі;
-        </Text>
-        <Text style={styles.item}>
-          • уникати тривалих прогулянок та інтенсивних фізичних навантажень;
-        </Text>
-        <Text style={styles.item}>
-          • зачиняти вікна у періоди сильного забруднення;
-        </Text>
-        <Text style={styles.item}>
-          • звертати особливу увагу на стан дітей, людей похилого віку та людей
-          із захворюваннями органів дихання;
-        </Text>
-        <Text style={styles.item}>
-          • стежити за оновленням показників у застосунку для вибраного району.
-        </Text>
-      </View>
 
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>
+        <BulletItem text="Скоротити час перебування надворі." colors={colors} />
+        <BulletItem
+          text="Уникати довгих прогулянок та інтенсивних фізичних навантажень."
+          colors={colors}
+        />
+        <BulletItem
+          text="Зачиняти вікна в періоди сильного забруднення."
+          colors={colors}
+        />
+        <BulletItem
+          text="Особливо стежити за станом дітей і людей із захворюваннями дихальної системи."
+          colors={colors}
+        />
+        <BulletItem
+          text="Регулярно перевіряти оновлення показників у застосунку."
+          colors={colors}
+        />
+      </AppCard>
+
+      <AppCard>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>
           Практичне призначення застосунку
         </Text>
-        <Text style={styles.text}>
-          Розроблений застосунок дає змогу відстежувати стан повітря в різних
-          районах міста Львова, переглядати історію вимірювань, аналізувати
-          зміни на графіку та орієнтуватися за мапою районів. Це підвищує
-          інформаційну цінність проєкту і робить застосунок корисним не лише як
-          технічну демонстрацію, а й як інструмент для ознайомлення користувача
-          з екологічною ситуацією.
+        <Text style={[styles.text, { color: colors.text }]}>
+          Застосунок допомагає відстежувати стан повітря в різних районах
+          Львова, переглядати історію змін, аналізувати графік і орієнтуватися
+          за мапою районів.
         </Text>
-      </View>
-    </ScrollView>
+      </AppCard>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f5f7fa",
-  },
-  content: {
-    padding: 20,
-    paddingTop: 40,
-    paddingBottom: 30,
-  },
   title: {
-    fontSize: 26,
+    fontSize: 30,
     fontWeight: "700",
     textAlign: "center",
     marginBottom: 20,
   },
-  card: {
-    backgroundColor: "#ffffff",
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 14,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
+  heroLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 1.2,
+    marginBottom: 8,
+    textTransform: "uppercase",
+  },
+  heroTitle: {
+    fontSize: 26,
+    fontWeight: "800",
+    marginBottom: 12,
+  },
+  heroText: {
+    fontSize: 16,
+    lineHeight: 24,
+    marginBottom: 10,
   },
   sectionTitle: {
-    fontSize: 19,
+    fontSize: 20,
     fontWeight: "700",
-    color: "#111",
-    marginBottom: 10,
+    marginBottom: 14,
   },
   text: {
     fontSize: 16,
     lineHeight: 24,
-    color: "#333",
     marginBottom: 10,
   },
-  item: {
-    fontSize: 16,
-    lineHeight: 24,
-    color: "#333",
+  levelRow: {
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 10,
+  },
+  levelLeft: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 10,
     marginBottom: 6,
+  },
+  levelRange: {
+    fontSize: 18,
+    fontWeight: "800",
+  },
+  levelTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+  },
+  levelDescription: {
+    fontSize: 14,
+    lineHeight: 21,
+  },
+  bulletRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: 12,
+  },
+  bulletDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginTop: 7,
+    marginRight: 10,
+  },
+  bulletText: {
+    flex: 1,
+    fontSize: 15,
+    lineHeight: 23,
   },
 });

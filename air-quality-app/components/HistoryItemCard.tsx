@@ -1,5 +1,5 @@
-import { getAirStatus } from "@/utils/airStatus";
 import { StyleSheet, Text, View } from "react-native";
+import { useAppColors } from "@/hooks/useAppColors";
 
 type HistoryItemCardProps = {
   time: string;
@@ -7,56 +7,66 @@ type HistoryItemCardProps = {
 };
 
 export default function HistoryItemCard({ time, value }: HistoryItemCardProps) {
-  const airStatus = getAirStatus(value);
+  const colors = useAppColors();
 
   return (
-    <View style={styles.card}>
-      <View style={styles.row}>
-        <Text style={styles.time}>Час: {time}</Text>
-        <Text style={[styles.status, { color: airStatus.color }]}>
-          {airStatus.label}
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: colors.surface,
+          borderColor: colors.cardBorder,
+          shadowColor: colors.shadow,
+        },
+      ]}
+    >
+      <View>
+        <Text style={[styles.timeLabel, { color: colors.textSecondary }]}>
+          Час
         </Text>
+        <Text style={[styles.timeValue, { color: colors.text }]}>{time}</Text>
       </View>
 
-      <Text style={styles.value}>{value}</Text>
-      <Text style={styles.indexLabel}>airIndex</Text>
+      <View style={styles.valueBlock}>
+        <Text style={[styles.valueLabel, { color: colors.textSecondary }]}>
+          airIndex
+        </Text>
+        <Text style={[styles.value, { color: colors.text }]}>{value}</Text>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#ffffff",
+    borderRadius: 16,
+    borderWidth: 1,
     padding: 16,
-    borderRadius: 14,
-    marginBottom: 12,
-    shadowColor: "#000",
+    marginBottom: 10,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     shadowOpacity: 0.08,
     shadowRadius: 6,
     elevation: 3,
   },
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 10,
+  timeLabel: {
+    fontSize: 13,
+    marginBottom: 4,
   },
-  time: {
-    fontSize: 15,
-    color: "#666",
+  timeValue: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  valueBlock: {
+    alignItems: "flex-end",
+  },
+  valueLabel: {
+    fontSize: 13,
+    marginBottom: 4,
   },
   value: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: "#111",
-    marginBottom: 2,
-  },
-  indexLabel: {
-    fontSize: 14,
-    color: "#777",
-  },
-  status: {
-    fontSize: 15,
+    fontSize: 22,
     fontWeight: "700",
   },
 });

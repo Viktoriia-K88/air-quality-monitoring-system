@@ -1,6 +1,9 @@
+import AppCard from "@/components/AppCard";
+import ScreenContainer from "@/components/ScreenContainer";
+import { useAppColors } from "@/hooks/useAppColors";
 import { useLocalSearchParams } from "expo-router";
 import { useMemo } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { LineChart } from "react-native-gifted-charts";
 
 type AnalyticsItem = {
@@ -12,6 +15,7 @@ type AnalyticsItem = {
 };
 
 export default function AnalyticsScreen() {
+  const colors = useAppColors();
   const params = useLocalSearchParams();
 
   const district = typeof params.district === "string" ? params.district : "";
@@ -54,134 +58,146 @@ export default function AnalyticsScreen() {
   }, [historyData]);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>Аналітика</Text>
-      <Text style={styles.subtitle}>{district} район</Text>
+    <ScreenContainer>
+      <View style={styles.header}>
+        <Text
+          style={[styles.subtitleCentered, { color: colors.textSecondary }]}
+        >
+          {district} район
+        </Text>
+      </View>
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Графік airIndex</Text>
+      <AppCard>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>
+          Графік airIndex
+        </Text>
 
         {chartData.length > 0 ? (
-          <LineChart
-            data={chartData}
-            areaChart
-            curved
-            thickness={3}
-            hideDataPoints={false}
-            initialSpacing={10}
-            endSpacing={10}
-            spacing={42}
-            noOfSections={5}
-            maxValue={120}
-            yAxisTextStyle={styles.axisText}
-            xAxisLabelTextStyle={styles.axisText}
-            rulesColor="#d9d9d9"
-            yAxisColor="#cfcfcf"
-            xAxisColor="#cfcfcf"
-            color="#2563eb"
-            dataPointsColor="#2563eb"
-            textColor1="#666"
-            textShiftY={4}
-          />
+          <View style={styles.chartWrapper}>
+            <LineChart
+              data={chartData}
+              areaChart
+              curved
+              thickness={3}
+              hideDataPoints={false}
+              initialSpacing={2}
+              endSpacing={2}
+              spacing={42}
+              adjustToWidth
+              noOfSections={5}
+              maxValue={120}
+              yAxisTextStyle={{ color: colors.textSecondary, fontSize: 11 }}
+              xAxisLabelTextStyle={{
+                color: colors.textSecondary,
+                fontSize: 11,
+              }}
+              rulesColor={colors.border}
+              yAxisColor={colors.border}
+              xAxisColor={colors.border}
+              color={colors.primary}
+              dataPointsColor={colors.primary}
+              startFillColor={colors.primary}
+              endFillColor={colors.primary}
+              startOpacity={0.2}
+              endOpacity={0.03}
+              textColor1={colors.textSecondary}
+              textShiftY={4}
+            />
+          </View>
         ) : (
-          <Text style={styles.emptyText}>Дані для графіка відсутні</Text>
+          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+            Дані для графіка відсутні
+          </Text>
         )}
-      </View>
+      </AppCard>
 
       <View style={styles.statsGrid}>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{stats.avg}</Text>
-          <Text style={styles.statLabel}>Середнє</Text>
+        <View style={styles.half}>
+          <AppCard>
+            <Text style={[styles.statValue, { color: colors.text }]}>
+              {stats.avg}
+            </Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+              Середнє
+            </Text>
+          </AppCard>
         </View>
 
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{stats.min}</Text>
-          <Text style={styles.statLabel}>Мінімум</Text>
+        <View style={styles.half}>
+          <AppCard>
+            <Text style={[styles.statValue, { color: colors.text }]}>
+              {stats.min}
+            </Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+              Мінімум
+            </Text>
+          </AppCard>
         </View>
 
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{stats.max}</Text>
-          <Text style={styles.statLabel}>Максимум</Text>
+        <View style={styles.half}>
+          <AppCard>
+            <Text style={[styles.statValue, { color: colors.text }]}>
+              {stats.max}
+            </Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+              Максимум
+            </Text>
+          </AppCard>
         </View>
 
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{stats.count}</Text>
-          <Text style={styles.statLabel}>Записи</Text>
+        <View style={styles.half}>
+          <AppCard>
+            <Text style={[styles.statValue, { color: colors.text }]}>
+              {stats.count}
+            </Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+              Записи
+            </Text>
+          </AppCard>
         </View>
       </View>
-    </ScrollView>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f5f7fa",
-  },
-  content: {
-    padding: 20,
-    paddingTop: 40,
-    paddingBottom: 30,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: "700",
-    textAlign: "center",
+  header: {
     marginBottom: 8,
+    alignItems: "center",
   },
-  subtitle: {
-    fontSize: 16,
+  subtitleCentered: {
+    fontSize: 18,
     textAlign: "center",
-    color: "#666",
-    marginBottom: 20,
-  },
-  card: {
-    backgroundColor: "#ffffff",
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
   },
   cardTitle: {
     fontSize: 18,
     fontWeight: "700",
     marginBottom: 14,
   },
-  axisText: {
-    fontSize: 11,
-    color: "#666",
+  chartWrapper: {
+    overflow: "hidden",
+    borderRadius: 14,
   },
   emptyText: {
     fontSize: 15,
-    color: "#666",
+    textAlign: "center",
+    paddingVertical: 10,
   },
   statsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    justifyContent: "space-between",
-    gap: 12,
+    marginHorizontal: -6,
   },
-  statCard: {
-    width: "48%",
-    backgroundColor: "#ffffff",
-    borderRadius: 14,
-    padding: 16,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
+  half: {
+    width: "50%",
+    paddingHorizontal: 6,
   },
   statValue: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#111",
+    fontSize: 30,
+    fontWeight: "800",
     marginBottom: 6,
   },
   statLabel: {
     fontSize: 14,
-    color: "#666",
   },
 });
