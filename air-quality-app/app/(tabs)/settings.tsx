@@ -22,26 +22,56 @@ export default function SettingsScreen() {
   } = useDistrict();
 
   function toggleWatchedDistrict(district: string) {
-    if (district === selectedDistrict) return;
+    if (district === selectedDistrict) {
+      return;
+    }
 
     if (watchedDistricts.includes(district)) {
       setWatchedDistricts(watchedDistricts.filter((item) => item !== district));
-    } else {
-      setWatchedDistricts([...watchedDistricts, district]);
+
+      return;
     }
+
+    setWatchedDistricts([...watchedDistricts, district]);
   }
 
   return (
     <ScreenContainer>
-      <Text style={[styles.title, { color: colors.text }]}>Налаштування</Text>
+      <Text
+        style={[
+          styles.title,
+          {
+            color: colors.text,
+          },
+        ]}
+        accessibilityRole="header"
+      >
+        Налаштування
+      </Text>
 
       <AppCard>
         <View style={styles.heroTop}>
           <View style={styles.heroTextBlock}>
-            <Text style={[styles.heroTitle, { color: colors.text }]}>
+            <Text
+              style={[
+                styles.heroTitle,
+                {
+                  color: colors.text,
+                },
+              ]}
+              accessibilityRole="header"
+            >
               Сповіщення
             </Text>
-            <Text style={[styles.heroText, { color: colors.textSecondary }]}>
+
+            <Text
+              style={[
+                styles.heroText,
+                {
+                  color: colors.textSecondary,
+                },
+              ]}
+            >
               Керуй попередженнями про погіршення якості повітря у вибраних
               районах.
             </Text>
@@ -50,6 +80,7 @@ export default function SettingsScreen() {
           <Switch
             value={notificationsEnabled}
             onValueChange={setNotificationsEnabled}
+            accessibilityLabel="Сповіщення про якість повітря"
             trackColor={{
               false: colors.border,
               true: colors.primarySoft,
@@ -65,9 +96,17 @@ export default function SettingsScreen() {
               backgroundColor: notificationsEnabled
                 ? colors.primarySoft
                 : colors.surfaceSecondary,
+
               borderColor: colors.cardBorder,
             },
           ]}
+          accessible
+          accessibilityLiveRegion="polite"
+          accessibilityLabel={
+            notificationsEnabled
+              ? "Сповіщення увімкнені"
+              : "Сповіщення вимкнені"
+          }
         >
           <Text
             style={[
@@ -87,18 +126,50 @@ export default function SettingsScreen() {
       </AppCard>
 
       <AppCard>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>
+        <Text
+          style={[
+            styles.sectionTitle,
+            {
+              color: colors.text,
+            },
+          ]}
+          accessibilityRole="header"
+        >
           Локація
         </Text>
 
         <View style={styles.infoBlock}>
-          <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>
+          <Text
+            style={[
+              styles.infoLabel,
+              {
+                color: colors.textSecondary,
+              },
+            ]}
+          >
             Місто
           </Text>
-          <Text style={[styles.infoValue, { color: colors.text }]}>Львів</Text>
+
+          <Text
+            style={[
+              styles.infoValue,
+              {
+                color: colors.text,
+              },
+            ]}
+          >
+            Львів
+          </Text>
         </View>
 
-        <Text style={[styles.fieldLabel, { color: colors.text }]}>
+        <Text
+          style={[
+            styles.fieldLabel,
+            {
+              color: colors.text,
+            },
+          ]}
+        >
           Основний район
         </Text>
 
@@ -114,10 +185,26 @@ export default function SettingsScreen() {
       </AppCard>
 
       <AppCard>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>
+        <Text
+          style={[
+            styles.sectionTitle,
+            {
+              color: colors.text,
+            },
+          ]}
+          accessibilityRole="header"
+        >
           Поріг сповіщення
         </Text>
-        <Text style={[styles.sectionHelper, { color: colors.textSecondary }]}>
+
+        <Text
+          style={[
+            styles.sectionHelper,
+            {
+              color: colors.textSecondary,
+            },
+          ]}
+        >
           Сповіщення приходитимуть, якщо значення перевищить обраний рівень.
         </Text>
 
@@ -133,10 +220,26 @@ export default function SettingsScreen() {
       </AppCard>
 
       <AppCard>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>
+        <Text
+          style={[
+            styles.sectionTitle,
+            {
+              color: colors.text,
+            },
+          ]}
+          accessibilityRole="header"
+        >
           Райони спостереження
         </Text>
-        <Text style={[styles.sectionHelper, { color: colors.textSecondary }]}>
+
+        <Text
+          style={[
+            styles.sectionHelper,
+            {
+              color: colors.textSecondary,
+            },
+          ]}
+        >
           Обери додаткові райони, за якими хочеш стежити.
         </Text>
 
@@ -150,12 +253,18 @@ export default function SettingsScreen() {
                 <Pressable
                   key={district}
                   onPress={() => toggleWatchedDistrict(district)}
+                  accessibilityRole="button"
+                  accessibilityState={{
+                    selected: isSelected,
+                  }}
+                  accessibilityLabel={`${district} район`}
                   style={[
                     styles.watchItem,
                     {
                       borderColor: isSelected
                         ? colors.primary
                         : colors.cardBorder,
+
                       backgroundColor: isSelected
                         ? colors.primarySoft
                         : colors.surfaceSecondary,
@@ -167,6 +276,7 @@ export default function SettingsScreen() {
                       styles.watchItemText,
                       {
                         color: isSelected ? colors.primary : colors.text,
+
                         fontWeight: isSelected ? "700" : "500",
                       },
                     ]}
@@ -184,79 +294,109 @@ export default function SettingsScreen() {
 
 const styles = StyleSheet.create({
   title: {
+    marginBottom: 20,
+
     fontSize: 30,
     fontWeight: "700",
-    marginBottom: 20,
     textAlign: "center",
   },
+
   heroTop: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
     gap: 12,
+
     marginBottom: 14,
   },
+
   heroTextBlock: {
     flex: 1,
   },
+
   heroTitle: {
+    marginBottom: 8,
+
     fontSize: 22,
     fontWeight: "800",
-    marginBottom: 8,
   },
+
   heroText: {
     fontSize: 15,
     lineHeight: 22,
   },
+
   statusPill: {
     alignSelf: "flex-start",
-    borderWidth: 1,
-    borderRadius: 999,
+
     paddingHorizontal: 14,
     paddingVertical: 8,
+
+    borderWidth: 1,
+    borderRadius: 999,
   },
+
   statusPillText: {
     fontSize: 14,
     fontWeight: "700",
   },
+
   sectionTitle: {
+    marginBottom: 12,
+
     fontSize: 20,
     fontWeight: "700",
-    marginBottom: 12,
   },
+
   sectionHelper: {
+    marginBottom: 12,
+
     fontSize: 14,
     lineHeight: 21,
-    marginBottom: 12,
   },
+
   infoBlock: {
     marginBottom: 16,
   },
+
   infoLabel: {
-    fontSize: 15,
     marginBottom: 6,
+
+    fontSize: 15,
   },
+
   infoValue: {
     fontSize: 18,
     fontWeight: "700",
   },
+
   fieldLabel: {
+    marginBottom: 10,
+
     fontSize: 16,
     fontWeight: "600",
-    marginBottom: 10,
   },
+
   watchList: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 10,
+
     marginTop: 6,
   },
+
   watchItem: {
+    minHeight: 44,
+
+    justifyContent: "center",
+
     paddingVertical: 11,
     paddingHorizontal: 14,
-    borderRadius: 12,
+
     borderWidth: 1,
+    borderRadius: 12,
   },
+
   watchItemText: {
     fontSize: 15,
   },

@@ -28,14 +28,28 @@ export default function AppSelectModal({
   onChange,
 }: AppSelectModalProps) {
   const colors = useAppColors();
+
   const [visible, setVisible] = useState(false);
 
   const selectedOption = options.find((item) => item.value === value);
+
+  const selectedLabel = selectedOption?.label ?? String(value);
+
+  function selectOption(option: Option) {
+    onChange(option.value);
+
+    setVisible(false);
+  }
 
   return (
     <>
       <Pressable
         onPress={() => setVisible(true)}
+        accessibilityRole="button"
+        accessibilityLabel={`${label}. Вибрано: ${selectedLabel}`}
+        accessibilityState={{
+          expanded: visible,
+        }}
         style={[
           styles.trigger,
           {
@@ -45,15 +59,40 @@ export default function AppSelectModal({
         ]}
       >
         <View>
-          <Text style={[styles.triggerLabel, { color: colors.textSecondary }]}>
+          <Text
+            style={[
+              styles.triggerLabel,
+              {
+                color: colors.textSecondary,
+              },
+            ]}
+          >
             {label}
           </Text>
-          <Text style={[styles.triggerValue, { color: colors.text }]}>
-            {selectedOption?.label ?? String(value)}
+
+          <Text
+            style={[
+              styles.triggerValue,
+              {
+                color: colors.text,
+              },
+            ]}
+          >
+            {selectedLabel}
           </Text>
         </View>
 
-        <Text style={[styles.chevron, { color: colors.textSecondary }]}>⌄</Text>
+        <Text
+          style={[
+            styles.chevron,
+            {
+              color: colors.textSecondary,
+            },
+          ]}
+          accessible={false}
+        >
+          ⌄
+        </Text>
       </Pressable>
 
       <Modal
@@ -66,6 +105,7 @@ export default function AppSelectModal({
           <Pressable
             style={styles.backdrop}
             onPress={() => setVisible(false)}
+            accessible={false}
           />
 
           <View
@@ -78,12 +118,32 @@ export default function AppSelectModal({
             ]}
           >
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>
+              <Text
+                style={[
+                  styles.modalTitle,
+                  {
+                    color: colors.text,
+                  },
+                ]}
+                accessibilityRole="header"
+              >
                 {label}
               </Text>
 
-              <Pressable onPress={() => setVisible(false)}>
-                <Text style={[styles.closeText, { color: colors.primary }]}>
+              <Pressable
+                style={styles.closeButton}
+                onPress={() => setVisible(false)}
+                accessibilityRole="button"
+                accessibilityLabel="Закрити список"
+              >
+                <Text
+                  style={[
+                    styles.closeText,
+                    {
+                      color: colors.primary,
+                    },
+                  ]}
+                >
                   Закрити
                 </Text>
               </Pressable>
@@ -96,16 +156,19 @@ export default function AppSelectModal({
                 return (
                   <Pressable
                     key={String(option.value)}
-                    onPress={() => {
-                      onChange(option.value);
-                      setVisible(false);
+                    onPress={() => selectOption(option)}
+                    accessibilityRole="button"
+                    accessibilityState={{
+                      selected: isSelected,
                     }}
+                    accessibilityLabel={option.label}
                     style={[
                       styles.optionItem,
                       {
                         borderColor: isSelected
                           ? colors.primary
                           : colors.cardBorder,
+
                         backgroundColor: isSelected
                           ? colors.primarySoft
                           : colors.surfaceSecondary,
@@ -117,6 +180,7 @@ export default function AppSelectModal({
                         styles.optionText,
                         {
                           color: isSelected ? colors.primary : colors.text,
+
                           fontWeight: isSelected ? "700" : "500",
                         },
                       ]}
@@ -136,66 +200,102 @@ export default function AppSelectModal({
 
 const styles = StyleSheet.create({
   trigger: {
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
     minHeight: 58,
+
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+
+    borderWidth: 1,
+    borderRadius: 12,
   },
+
   triggerLabel: {
-    fontSize: 12,
     marginBottom: 4,
+
+    fontSize: 12,
   },
+
   triggerValue: {
     fontSize: 17,
     fontWeight: "600",
   },
+
   chevron: {
     fontSize: 22,
     lineHeight: 22,
   },
+
   overlay: {
     flex: 1,
+
     justifyContent: "center",
     alignItems: "center",
+
     padding: 20,
   },
+
   backdrop: {
     ...StyleSheet.absoluteFillObject,
+
     backgroundColor: "rgba(0,0,0,0.5)",
   },
+
   modalCard: {
     width: "100%",
     maxWidth: 420,
     maxHeight: "72%",
-    borderRadius: 24,
-    borderWidth: 1,
+
     padding: 20,
+
+    borderWidth: 1,
+    borderRadius: 24,
   },
+
   modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+
     marginBottom: 16,
   },
+
   modalTitle: {
     fontSize: 22,
     fontWeight: "700",
   },
+
+  closeButton: {
+    minWidth: 44,
+    minHeight: 44,
+
+    justifyContent: "center",
+    alignItems: "center",
+
+    paddingHorizontal: 6,
+  },
+
   closeText: {
     fontSize: 15,
     fontWeight: "600",
   },
+
   optionItem: {
-    borderWidth: 1,
-    borderRadius: 14,
+    minHeight: 48,
+
+    justifyContent: "center",
+
+    marginBottom: 10,
     paddingVertical: 14,
     paddingHorizontal: 16,
-    marginBottom: 10,
+
+    borderWidth: 1,
+    borderRadius: 14,
   },
+
   optionText: {
     fontSize: 16,
   },

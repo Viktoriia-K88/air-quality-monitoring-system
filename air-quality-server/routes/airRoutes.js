@@ -1,8 +1,15 @@
 const express = require("express");
 const router = express.Router();
+
 const db = require("../db/database");
 
-const MAX_HISTORY_LENGTH = 200;
+const { processExpoPushNotifications } = require("../services/expoPushService");
+
+const {
+  getVapidPublicKey,
+  processWebPushNotifications,
+} = require("../services/webPushService");
+
 const ALERT_THRESHOLD = 80;
 
 function formatTime(value) {
@@ -18,109 +25,22 @@ function formatTime(value) {
   });
 }
 
-async function sendExpoPushNotification(token, title, body, data = {}) {
-  if (!token || !token.startsWith("ExponentPushToken")) {
-    console.log("Невалідний Expo push token:", token);
-    return;
-  }
-
-  try {
-    const response = await fetch("https://exp.host/--/api/v2/push/send", {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Accept-encoding": "gzip, deflate",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        to: token,
-        sound: "default",
-        title,
-        body,
-        data,
-      }),
-    });
-
-    const result = await response.json();
-    console.log("Expo push result:", result);
-  } catch (error) {
-    console.log("Помилка надсилання push:", error.message);
-  }
-}
-
-async function processPushNotifications({
-  city,
-  district,
-  airIndex,
-  updatedAt,
-}) {
-  db.all(
-    `
-    SELECT token, primaryDistrict, watchDistricts, threshold, notificationsEnabled
-    FROM push_subscriptions
-    `,
-    [],
-    async (err, rows) => {
-      if (err) {
-        console.log("Помилка читання push_subscriptions:", err.message);
-        return;
-      }
-
-      if (!rows || rows.length === 0) {
-        console.log("Немає підписок для push.");
-        return;
-      }
-
-      for (const row of rows) {
-        try {
-          if (!row.notificationsEnabled) {
-            continue;
-          }
-
-          const watchDistricts = row.watchDistricts
-            ? JSON.parse(row.watchDistricts)
-            : [];
-
-          const isMatchingDistrict =
-            row.primaryDistrict === district ||
-            watchDistricts.includes(district);
-
-          if (!isMatchingDistrict) {
-            continue;
-          }
-
-          if (airIndex <= row.threshold) {
-            continue;
-          }
-
-          const title = "Попередження про якість повітря";
-          const body = `У районі ${district} рівень забруднення зріс до ${airIndex}.`;
-
-          await sendExpoPushNotification(row.token, title, body, {
-            city,
-            district,
-            airIndex,
-            updatedAt,
-          });
-
-          console.log(
-            `Push надіслано для token ${row.token}, район: ${district}, airIndex: ${airIndex}`,
-          );
-        } catch (error) {
-          console.log("Помилка обробки push subscription:", error.message);
-        }
-      }
-    },
-  );
-}
-
 router.get("/current", (req, res) => {
   const district = req.query.district;
 
   let query = `
-    SELECT city, district, airIndex, updatedAt, alert, alertMessage
+    SELECT
+      city,
+      district,
+      airIndex,
+      pm25,
+      pm10,
+      updatedAt,
+      alert,
+      alertMessage
     FROM air_measurements
   `;
+
   const params = [];
 
   if (district) {
@@ -132,7 +52,9 @@ router.get("/current", (req, res) => {
 
   db.get(query, params, (err, row) => {
     if (err) {
-      return res.status(500).json({ message: err.message });
+      return res.status(500).json({
+        message: err.message,
+      });
     }
 
     if (!row) {
@@ -140,6 +62,8 @@ router.get("/current", (req, res) => {
         city: "Львів",
         district: district || "Сихівський",
         airIndex: 67,
+        pm25: null,
+        pm10: null,
         updatedAt: new Date().toISOString(),
         alert: false,
         alertMessage: "",
@@ -155,24 +79,83 @@ router.get("/current", (req, res) => {
 
 router.get("/history", (req, res) => {
   const district = req.query.district;
+  const range = req.query.range || "last20";
 
-  let query = `
-    SELECT id, district, updatedAt, airIndex as value
-    FROM air_measurements
-  `;
-  const params = [];
-
-  if (district) {
-    query += ` WHERE district = ?`;
-    params.push(district);
+  if (!district) {
+    return res.status(400).json({
+      message: "District is required.",
+    });
   }
 
-  query += ` ORDER BY id DESC LIMIT ?`;
-  params.push(MAX_HISTORY_LENGTH);
+  const allowedRanges = ["last20", "today", "yesterday"];
+
+  if (!allowedRanges.includes(range)) {
+    return res.status(400).json({
+      message: "Invalid range. Use last20, today or yesterday.",
+    });
+  }
+
+  let query = `
+    SELECT
+      id,
+      district,
+      updatedAt,
+      airIndex AS value,
+      pm25,
+      pm10
+    FROM air_measurements
+    WHERE district = ?
+  `;
+
+  const params = [district];
+
+  if (range === "today" || range === "yesterday") {
+    const now = new Date();
+    const targetDate = new Date(now);
+
+    if (range === "yesterday") {
+      targetDate.setDate(targetDate.getDate() - 1);
+    }
+
+    const start = new Date(
+      targetDate.getFullYear(),
+      targetDate.getMonth(),
+      targetDate.getDate(),
+      0,
+      0,
+      0,
+      0,
+    );
+
+    const end = new Date(
+      targetDate.getFullYear(),
+      targetDate.getMonth(),
+      targetDate.getDate() + 1,
+      0,
+      0,
+      0,
+      0,
+    );
+
+    query += `
+      AND updatedAt >= ?
+      AND updatedAt < ?
+    `;
+
+    params.push(start.toISOString(), end.toISOString());
+  }
+
+  query += ` ORDER BY id DESC`;
+
+  if (range === "last20") {
+    query += ` LIMIT 20`;
+  }
 
   db.all(query, params, (err, rows) => {
     if (err) {
-      return res.status(500).json({ message: err.message });
+      return res.status(500).json({
+        message: err.message,
+      });
     }
 
     const formattedRows = rows.reverse().map((row) => ({
@@ -181,6 +164,8 @@ router.get("/history", (req, res) => {
       updatedAt: row.updatedAt,
       time: formatTime(row.updatedAt),
       value: row.value,
+      pm25: row.pm25,
+      pm10: row.pm10,
     }));
 
     res.json(formattedRows);
@@ -188,45 +173,88 @@ router.get("/history", (req, res) => {
 });
 
 router.post("/air-data", (req, res) => {
-  console.log("POST /air-data", req.body);
+  if (process.env.NODE_ENV !== "production") {
+    console.log("POST /air-data", req.body);
+  }
 
-  const { city, district, airIndex, updatedAt } = req.body;
+  const { city, district, airIndex, pm25, pm10, updatedAt } = req.body;
 
-  if (!city || !district || airIndex === undefined || !updatedAt) {
+  if (
+    !city ||
+    !district ||
+    airIndex === undefined ||
+    pm25 === undefined ||
+    pm10 === undefined ||
+    !updatedAt
+  ) {
     return res.status(400).json({
-      message: "Missing required fields: city, district, airIndex, updatedAt",
+      message:
+        "Missing required fields: city, district, airIndex, pm25, pm10, updatedAt",
     });
   }
 
   const isAlert = airIndex > ALERT_THRESHOLD;
+
   const alertMessage = isAlert
     ? "Увага! Підвищений рівень забруднення повітря."
     : "";
 
   db.run(
     `
-    INSERT INTO air_measurements (city, district, airIndex, updatedAt, alert, alertMessage)
-    VALUES (?, ?, ?, ?, ?, ?)
-    `,
-    [city, district, airIndex, updatedAt, isAlert ? 1 : 0, alertMessage],
-    async function (err) {
-      if (err) {
-        return res.status(500).json({ message: err.message });
-      }
-
-      await processPushNotifications({
+      INSERT INTO air_measurements (
         city,
         district,
         airIndex,
+        pm25,
+        pm10,
         updatedAt,
-      });
+        alert,
+        alertMessage
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `,
+    [
+      city,
+      district,
+      airIndex,
+      pm25,
+      pm10,
+      updatedAt,
+      isAlert ? 1 : 0,
+      alertMessage,
+    ],
+    async function (err) {
+      if (err) {
+        return res.status(500).json({
+          message: err.message,
+        });
+      }
+
+      await Promise.allSettled([
+        processExpoPushNotifications({
+          city,
+          district,
+          airIndex,
+          updatedAt,
+        }),
+
+        processWebPushNotifications({
+          city,
+          district,
+          airIndex,
+          updatedAt,
+        }),
+      ]);
 
       res.status(201).json({
         message: "Air data received successfully",
+
         currentAirData: {
           city,
           district,
           airIndex,
+          pm25,
+          pm10,
           updatedAt,
           alert: isAlert,
           alertMessage,
@@ -245,8 +273,6 @@ router.post("/register-push-token", (req, res) => {
     notificationsEnabled = true,
   } = req.body;
 
-  console.log("POST /register-push-token", req.body);
-
   if (!token || !primaryDistrict) {
     return res.status(400).json({
       message: "Missing required fields: token, primaryDistrict",
@@ -255,19 +281,20 @@ router.post("/register-push-token", (req, res) => {
 
   db.run(
     `
-    INSERT INTO push_subscriptions (
-      token,
-      primaryDistrict,
-      watchDistricts,
-      threshold,
-      notificationsEnabled
-    )
-    VALUES (?, ?, ?, ?, ?)
-    ON CONFLICT(token) DO UPDATE SET
-      primaryDistrict = excluded.primaryDistrict,
-      watchDistricts = excluded.watchDistricts,
-      threshold = excluded.threshold,
-      notificationsEnabled = excluded.notificationsEnabled
+      INSERT INTO push_subscriptions (
+        token,
+        primaryDistrict,
+        watchDistricts,
+        threshold,
+        notificationsEnabled
+      )
+      VALUES (?, ?, ?, ?, ?)
+
+      ON CONFLICT(token) DO UPDATE SET
+        primaryDistrict = excluded.primaryDistrict,
+        watchDistricts = excluded.watchDistricts,
+        threshold = excluded.threshold,
+        notificationsEnabled = excluded.notificationsEnabled
     `,
     [
       token,
@@ -278,12 +305,283 @@ router.post("/register-push-token", (req, res) => {
     ],
     function (err) {
       if (err) {
-        return res.status(500).json({ message: err.message });
+        return res.status(500).json({
+          message: err.message,
+        });
       }
 
       res.status(201).json({
         message: "Push token registered successfully",
         subscriptionId: this.lastID,
+      });
+    },
+  );
+});
+
+router.get("/web-push/public-key", (req, res) => {
+  res.json({
+    publicKey: getVapidPublicKey(),
+  });
+});
+
+router.post("/web-push/subscribe", (req, res) => {
+  const {
+    subscription,
+    primaryDistrict,
+    watchDistricts = [],
+    threshold = 80,
+    notificationsEnabled = true,
+  } = req.body;
+
+  const endpoint = subscription?.endpoint;
+  const p256dh = subscription?.keys?.p256dh;
+  const auth = subscription?.keys?.auth;
+
+  if (!endpoint || !p256dh || !auth || !primaryDistrict) {
+    return res.status(400).json({
+      message: "Missing required Web Push subscription fields.",
+    });
+  }
+
+  if (!Array.isArray(watchDistricts)) {
+    return res.status(400).json({
+      message: "watchDistricts must be an array.",
+    });
+  }
+
+  if (typeof threshold !== "number" || !Number.isFinite(threshold)) {
+    return res.status(400).json({
+      message: "threshold must be a valid number.",
+    });
+  }
+
+  const createdAt = new Date().toISOString();
+
+  db.run(
+    `
+      INSERT INTO web_push_subscriptions (
+        endpoint,
+        p256dh,
+        auth,
+        primaryDistrict,
+        watchDistricts,
+        threshold,
+        notificationsEnabled,
+        createdAt
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+
+      ON CONFLICT(endpoint) DO UPDATE SET
+        p256dh = excluded.p256dh,
+        auth = excluded.auth,
+        primaryDistrict = excluded.primaryDistrict,
+        watchDistricts = excluded.watchDistricts,
+        threshold = excluded.threshold,
+        notificationsEnabled = excluded.notificationsEnabled
+    `,
+    [
+      endpoint,
+      p256dh,
+      auth,
+      primaryDistrict,
+      JSON.stringify(watchDistricts),
+      threshold,
+      notificationsEnabled ? 1 : 0,
+      createdAt,
+    ],
+    function (err) {
+      if (err) {
+        return res.status(500).json({
+          message: err.message,
+        });
+      }
+
+      res.status(201).json({
+        message: "Web Push subscription registered successfully",
+      });
+    },
+  );
+});
+
+router.patch("/web-push/preferences", (req, res) => {
+  const {
+    endpoint,
+    primaryDistrict,
+    watchDistricts,
+    threshold,
+    notificationsEnabled,
+  } = req.body;
+
+  if (!endpoint) {
+    return res.status(400).json({
+      message: "Web Push endpoint is required.",
+    });
+  }
+
+  const updates = [];
+  const params = [];
+
+  if (primaryDistrict !== undefined) {
+    if (typeof primaryDistrict !== "string" || !primaryDistrict.trim()) {
+      return res.status(400).json({
+        message: "primaryDistrict must be a non-empty string.",
+      });
+    }
+
+    updates.push("primaryDistrict = ?");
+    params.push(primaryDistrict);
+  }
+
+  if (watchDistricts !== undefined) {
+    if (
+      !Array.isArray(watchDistricts) ||
+      !watchDistricts.every((district) => typeof district === "string")
+    ) {
+      return res.status(400).json({
+        message: "watchDistricts must be an array of strings.",
+      });
+    }
+
+    updates.push("watchDistricts = ?");
+    params.push(JSON.stringify(watchDistricts));
+  }
+
+  if (threshold !== undefined) {
+    if (typeof threshold !== "number" || !Number.isFinite(threshold)) {
+      return res.status(400).json({
+        message: "threshold must be a valid number.",
+      });
+    }
+
+    updates.push("threshold = ?");
+    params.push(threshold);
+  }
+
+  if (notificationsEnabled !== undefined) {
+    if (typeof notificationsEnabled !== "boolean") {
+      return res.status(400).json({
+        message: "notificationsEnabled must be a boolean.",
+      });
+    }
+
+    updates.push("notificationsEnabled = ?");
+    params.push(notificationsEnabled ? 1 : 0);
+  }
+
+  if (updates.length === 0) {
+    return res.status(400).json({
+      message: "No Web Push preferences were provided.",
+    });
+  }
+
+  params.push(endpoint);
+
+  db.run(
+    `
+      UPDATE web_push_subscriptions
+      SET ${updates.join(", ")}
+      WHERE endpoint = ?
+    `,
+    params,
+    function (err) {
+      if (err) {
+        return res.status(500).json({
+          message: err.message,
+        });
+      }
+
+      if (this.changes === 0) {
+        return res.status(404).json({
+          message: "Web Push subscription was not found.",
+        });
+      }
+
+      res.json({
+        message: "Web Push preferences updated successfully",
+      });
+    },
+  );
+});
+
+router.post("/web-push/status", (req, res) => {
+  const { endpoint } = req.body;
+
+  if (!endpoint) {
+    return res.status(400).json({
+      message: "Web Push endpoint is required.",
+    });
+  }
+
+  db.get(
+    `
+      SELECT
+        primaryDistrict,
+        watchDistricts,
+        threshold,
+        notificationsEnabled
+      FROM web_push_subscriptions
+      WHERE endpoint = ?
+    `,
+    [endpoint],
+    (err, row) => {
+      if (err) {
+        return res.status(500).json({
+          message: err.message,
+        });
+      }
+
+      if (!row) {
+        return res.json({
+          subscribed: false,
+        });
+      }
+
+      let watchDistricts = [];
+
+      try {
+        watchDistricts = row.watchDistricts
+          ? JSON.parse(row.watchDistricts)
+          : [];
+      } catch {
+        watchDistricts = [];
+      }
+
+      res.json({
+        subscribed: true,
+        primaryDistrict: row.primaryDistrict,
+        watchDistricts,
+        threshold: row.threshold,
+        notificationsEnabled: Boolean(row.notificationsEnabled),
+      });
+    },
+  );
+});
+
+router.post("/web-push/unsubscribe", (req, res) => {
+  const { endpoint } = req.body;
+
+  if (!endpoint) {
+    return res.status(400).json({
+      message: "Web Push endpoint is required.",
+    });
+  }
+
+  db.run(
+    `
+      DELETE FROM web_push_subscriptions
+      WHERE endpoint = ?
+    `,
+    [endpoint],
+    function (err) {
+      if (err) {
+        return res.status(500).json({
+          message: err.message,
+        });
+      }
+
+      res.json({
+        message: "Web Push subscription removed successfully",
+        removed: this.changes > 0,
       });
     },
   );

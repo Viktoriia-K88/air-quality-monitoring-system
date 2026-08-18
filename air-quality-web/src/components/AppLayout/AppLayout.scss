@@ -1,0 +1,90 @@
+@use "../../styles/variables" as *;
+
+.app-layout {
+  width: 100%;
+  min-width: 0;
+
+  min-height: 100vh;
+  min-height: 100dvh;
+
+  display: flex;
+
+  background-color: $color-background;
+
+  &__content {
+    min-width: 0;
+    flex: 1;
+
+    padding: 32px;
+
+    background-color: $color-background;
+  }
+
+  &__overlay {
+    display: none;
+  }
+}
+
+// Compact desktop / tablet
+
+@media (max-width: 1179px) {
+  .app-layout {
+    &__content {
+      padding: 28px 24px;
+    }
+  }
+}
+
+// Mobile
+
+@media (max-width: 768px) {
+  .app-layout {
+    display: block;
+
+    &__content {
+      width: 100%;
+      min-width: 0;
+
+      padding: 88px 20px 28px;
+    }
+
+    &__overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 900;
+
+      display: block;
+
+      width: 100%;
+      height: 100%;
+
+      padding: 0;
+
+      background-color: rgba(0, 0, 0, 0.48);
+
+      border: 0;
+
+      cursor: default;
+    }
+  }
+}
+
+// Small mobile
+
+@media (max-width: 480px) {
+  .app-layout {
+    &__content {
+      padding: 80px 16px 24px;
+    }
+  }
+}
+
+// Very small mobile
+
+@media (max-width: 380px) {
+  .app-layout {
+    &__content {
+      padding-inline: 14px;
+    }
+  }
+}

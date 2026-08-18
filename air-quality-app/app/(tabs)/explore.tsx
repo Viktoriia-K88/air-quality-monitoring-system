@@ -1,32 +1,39 @@
-import HistoryItemCard from "@/components/HistoryItemCard";
 import AppCard from "@/components/AppCard";
+import HistoryItemCard from "@/components/HistoryItemCard";
 import ScreenContainer from "@/components/ScreenContainer";
 import { useDistrict } from "@/context/DistrictContext";
 import { useAppColors } from "@/hooks/useAppColors";
-import { getHistoryAirData } from "@/services/airService";
-import { HistoryAirItem } from "@/types/air";
+import { getHistoryAirData, type HistoryRange } from "@/services/airService";
+import type { HistoryAirItem } from "@/types/air";
 import { router } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { LineChart } from "react-native-gifted-charts";
 
-type HistoryFilter = "last20" | "today" | "yesterday";
-
 export default function HistoryScreen() {
   const colors = useAppColors();
+
   const { selectedDistrict, isDistrictLoaded } = useDistrict();
+
   const [historyAirData, setHistoryAirData] = useState<HistoryAirItem[]>([]);
+
   const [loading, setLoading] = useState(true);
-  const [activeFilter, setActiveFilter] = useState<HistoryFilter>("last20");
+
+  const [activeFilter, setActiveFilter] = useState<HistoryRange>("last20");
+
+  // load history
 
   useEffect(() => {
-    if (!isDistrictLoaded) return;
+    if (!isDistrictLoaded) {
+      return;
+    }
 
     let intervalId: ReturnType<typeof setInterval>;
 
     async function loadData() {
       try {
-        const data = await getHistoryAirData(selectedDistrict);
+        const data = await getHistoryAirData(selectedDistrict, activeFilter);
+
         setHistoryAirData(data);
       } catch (error) {
         console.log("Помилка завантаження history data:", error);
@@ -36,64 +43,52 @@ export default function HistoryScreen() {
     }
 
     setLoading(true);
+
     loadData();
 
-    intervalId = setInterval(() => {
-      loadData();
-    }, 10000);
+    intervalId = setInterval(loadData, 10000);
 
-    return () => clearInterval(intervalId);
-  }, [selectedDistrict, isDistrictLoaded]);
-
-  const filteredHistoryData = useMemo(() => {
-    if (activeFilter === "last20") {
-      return historyAirData.slice(-20);
-    }
-
-    const now = new Date();
-    const todayString = now.toDateString();
-
-    const yesterday = new Date();
-    yesterday.setDate(now.getDate() - 1);
-    const yesterdayString = yesterday.toDateString();
-
-    return historyAirData.filter((item) => {
-      const itemDate = new Date(item.updatedAt);
-      if (isNaN(itemDate.getTime())) return false;
-
-      if (activeFilter === "today") {
-        return itemDate.toDateString() === todayString;
-      }
-
-      if (activeFilter === "yesterday") {
-        return itemDate.toDateString() === yesterdayString;
-      }
-
-      return true;
-    });
-  }, [historyAirData, activeFilter]);
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [selectedDistrict, activeFilter, isDistrictLoaded]);
 
   const chartData = useMemo(() => {
-    return filteredHistoryData.map((item) => ({
+    return historyAirData.map((item) => ({
       value: item.value,
       label: item.time,
     }));
-  }, [filteredHistoryData]);
+  }, [historyAirData]);
 
   function openAnalytics() {
     router.push({
       pathname: "/analytics" as any,
       params: {
         district: selectedDistrict,
-        data: JSON.stringify(filteredHistoryData),
+        data: JSON.stringify(historyAirData),
       },
     });
   }
 
   if (!isDistrictLoaded || loading) {
     return (
-      <View style={[styles.centered, { backgroundColor: colors.background }]}>
-        <Text style={[styles.message, { color: colors.textSecondary }]}>
+      <View
+        style={[
+          styles.centered,
+          {
+            backgroundColor: colors.background,
+          },
+        ]}
+      >
+        <Text
+          style={[
+            styles.message,
+            {
+              color: colors.textSecondary,
+            },
+          ]}
+          accessibilityLiveRegion="polite"
+        >
           Завантаження...
         </Text>
       </View>
@@ -103,8 +98,26 @@ export default function HistoryScreen() {
   return (
     <ScreenContainer>
       <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.text }]}>Історія</Text>
-        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+        <Text
+          style={[
+            styles.title,
+            {
+              color: colors.text,
+            },
+          ]}
+          accessibilityRole="header"
+        >
+          Історія
+        </Text>
+
+        <Text
+          style={[
+            styles.subtitle,
+            {
+              color: colors.textSecondary,
+            },
+          ]}
+        >
           {selectedDistrict} район
         </Text>
       </View>
@@ -115,11 +128,13 @@ export default function HistoryScreen() {
           active={activeFilter === "last20"}
           onPress={() => setActiveFilter("last20")}
         />
+
         <FilterButton
           title="Сьогодні"
           active={activeFilter === "today"}
           onPress={() => setActiveFilter("today")}
         />
+
         <FilterButton
           title="Вчора"
           active={activeFilter === "yesterday"}
@@ -128,12 +143,23 @@ export default function HistoryScreen() {
       </View>
 
       <AppCard>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>
+        <Text
+          style={[
+            styles.cardTitle,
+            {
+              color: colors.text,
+            },
+          ]}
+        >
           Динаміка airIndex
         </Text>
 
         {chartData.length > 0 ? (
-          <View style={styles.chartWrapper}>
+          <View
+            style={styles.chartWrapper}
+            accessible
+            accessibilityLabel={`Графік динаміки AQI для ${selectedDistrict} району. Кількість вимірювань: ${chartData.length}.`}
+          >
             <LineChart
               data={chartData}
               areaChart
@@ -147,7 +173,10 @@ export default function HistoryScreen() {
               noOfSections={4}
               maxValue={120}
               height={120}
-              yAxisTextStyle={{ color: colors.textSecondary, fontSize: 10 }}
+              yAxisTextStyle={{
+                color: colors.textSecondary,
+                fontSize: 10,
+              }}
               xAxisLabelTextStyle={{
                 color: colors.textSecondary,
                 fontSize: 10,
@@ -163,22 +192,35 @@ export default function HistoryScreen() {
             />
           </View>
         ) : (
-          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+          <Text
+            style={[
+              styles.emptyText,
+              {
+                color: colors.textSecondary,
+              },
+            ]}
+          >
             Немає даних для вибраного фільтра
           </Text>
         )}
       </AppCard>
 
       <Pressable
-        style={[styles.analyticsButton, { backgroundColor: colors.primary }]}
+        style={[
+          styles.analyticsButton,
+          {
+            backgroundColor: colors.primary,
+          },
+        ]}
+        accessibilityRole="button"
         onPress={openAnalytics}
       >
         <Text style={styles.analyticsButtonText}>Відкрити аналітику</Text>
       </Pressable>
 
       <View style={styles.listBlock}>
-        {filteredHistoryData.length > 0 ? (
-          filteredHistoryData.map((item) => (
+        {historyAirData.length > 0 ? (
+          historyAirData.map((item) => (
             <HistoryItemCard
               key={item.id}
               time={item.time}
@@ -186,7 +228,14 @@ export default function HistoryScreen() {
             />
           ))
         ) : (
-          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+          <Text
+            style={[
+              styles.emptyText,
+              {
+                color: colors.textSecondary,
+              },
+            ]}
+          >
             Історія за цим фільтром відсутня
           </Text>
         )}
@@ -207,10 +256,15 @@ function FilterButton({ title, active, onPress }: FilterButtonProps) {
   return (
     <Pressable
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityState={{
+        selected: active,
+      }}
       style={[
         styles.filterButton,
         {
           backgroundColor: active ? colors.primarySoft : colors.surface,
+
           borderColor: active ? colors.primary : colors.cardBorder,
         },
       ]}
@@ -235,65 +289,90 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+
   message: {
     fontSize: 18,
   },
+
   header: {
     marginBottom: 8,
+
     alignItems: "center",
   },
+
   title: {
+    marginBottom: 6,
+
     fontSize: 30,
     fontWeight: "700",
-    marginBottom: 6,
     textAlign: "center",
   },
+
   subtitle: {
     fontSize: 16,
     textAlign: "center",
   },
+
   filtersRow: {
     flexDirection: "row",
     gap: 8,
+
     marginBottom: 14,
   },
+
   filterButton: {
     flex: 1,
+
+    alignItems: "center",
+
     paddingVertical: 10,
+
     borderRadius: 12,
     borderWidth: 1,
-    alignItems: "center",
   },
+
   filterButtonText: {
     fontSize: 14,
     fontWeight: "600",
   },
+
   cardTitle: {
+    marginBottom: 10,
+
     fontSize: 17,
     fontWeight: "700",
-    marginBottom: 10,
   },
+
   chartWrapper: {
     overflow: "hidden",
+
     borderRadius: 14,
   },
+
   analyticsButton: {
-    paddingVertical: 14,
-    borderRadius: 16,
     alignItems: "center",
+
     marginBottom: 14,
+    paddingVertical: 14,
+
+    borderRadius: 16,
   },
+
   analyticsButtonText: {
     color: "#ffffff",
+
     fontSize: 16,
     fontWeight: "700",
   },
+
   listBlock: {
     marginTop: 4,
   },
+
   emptyText: {
+    paddingVertical: 10,
+
     fontSize: 14,
     textAlign: "center",
-    paddingVertical: 10,
   },
 });

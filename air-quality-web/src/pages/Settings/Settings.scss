@@ -1,0 +1,794 @@
+@use "../../styles/variables" as *;
+
+.settings {
+  width: 100%;
+  max-width: 1440px;
+
+  margin-inline: auto;
+
+  &__header {
+    margin-bottom: 30px;
+  }
+
+  &__title {
+    color: $color-text;
+
+    font-size: 30px;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  &__section {
+    width: 100%;
+    max-width: 760px;
+
+    &--notifications {
+      margin-top: 30px;
+    }
+  }
+
+  &__section-heading {
+    margin-bottom: 12px;
+
+    h2 {
+      color: $color-text;
+
+      font-size: 18px;
+      font-weight: 600;
+    }
+  }
+
+  &__appearance-card,
+  &__notification-card,
+  &__threshold-card,
+  &__watched-card {
+    width: 100%;
+
+    background:
+      radial-gradient(
+        circle at 0 0,
+        rgba($color-primary-rgb, 0.06),
+        transparent 42%
+      ),
+      rgba($color-surface-rgb, 0.55);
+
+    border: 1px solid rgba($color-border-rgb, 0.6);
+    border-radius: 15px;
+  }
+
+  &__appearance-card {
+    padding: 18px;
+  }
+
+  &__appearance-header {
+    margin-bottom: 15px;
+
+    h3 {
+      color: $color-text;
+
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    p {
+      margin-top: 4px;
+
+      color: $color-text-muted;
+
+      font-size: 11px;
+      line-height: 1.5;
+    }
+  }
+
+  &__theme-options {
+    width: 100%;
+    max-width: 520px;
+
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  &__theme-option {
+    position: relative;
+
+    min-width: 0;
+    height: 48px;
+
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    padding: 0 30px 0 12px;
+
+    color: $color-text;
+    background-color: rgba($color-background-rgb, 0.42);
+
+    border: 1px solid rgba($color-border-rgb, 0.62);
+    border-radius: 9px;
+
+    font: inherit;
+
+    cursor: pointer;
+
+    transition:
+      border-color 0.2s ease,
+      background-color 0.2s ease;
+
+    &:hover {
+      border-color: rgba($color-primary-rgb, 0.48);
+
+      background-color: rgba($color-primary-rgb, 0.045);
+    }
+
+    &--active {
+      background-color: rgba($color-primary-rgb, 0.1);
+
+      border-color: rgba($color-primary-rgb, 0.72);
+    }
+
+    &:focus-visible {
+      outline: 2px solid $color-primary;
+      outline-offset: 2px;
+    }
+  }
+
+  &__theme-icon {
+    flex-shrink: 0;
+
+    color: $color-primary;
+  }
+
+  &__theme-label {
+    min-width: 0;
+
+    overflow: hidden;
+
+    color: $color-text;
+
+    font-size: 12px;
+    font-weight: 600;
+
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__theme-check {
+    position: absolute;
+    top: 50%;
+    right: 9px;
+
+    width: 17px;
+    height: 17px;
+
+    display: grid;
+    place-items: center;
+
+    color: #ffffff;
+    background-color: transparent;
+
+    border: 1px solid rgba($color-border-rgb, 0.75);
+    border-radius: 50%;
+
+    transform: translateY(-50%);
+  }
+
+  &__theme-option--active {
+    .settings__theme-check {
+      background-color: $color-primary;
+
+      border-color: $color-primary;
+    }
+  }
+
+  &__notification-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 28px;
+
+    padding: 18px;
+  }
+
+  &__notification-main {
+    min-width: 0;
+
+    display: flex;
+    align-items: flex-start;
+    gap: 13px;
+  }
+
+  &__notification-icon {
+    width: 40px;
+    height: 40px;
+
+    flex-shrink: 0;
+
+    display: grid;
+    place-items: center;
+
+    color: $color-primary;
+
+    background-color: rgba($color-primary-rgb, 0.08);
+
+    border: 1px solid rgba($color-primary-rgb, 0.24);
+    border-radius: 10px;
+  }
+
+  &__notification-content {
+    min-width: 0;
+
+    h3 {
+      color: $color-text;
+
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    p {
+      max-width: 420px;
+
+      margin-top: 4px;
+
+      color: $color-text-muted;
+
+      font-size: 11px;
+      line-height: 1.5;
+    }
+  }
+
+  &__notification-status {
+    width: fit-content;
+
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+
+    margin-top: 9px;
+
+    font-size: 10px;
+    font-weight: 500;
+
+    &::before {
+      width: 6px;
+      height: 6px;
+
+      flex-shrink: 0;
+
+      background-color: currentColor;
+
+      border-radius: 50%;
+
+      content: "";
+    }
+
+    &--success {
+      color: $color-success;
+    }
+
+    &--error {
+      color: $color-danger;
+    }
+
+    &--default {
+      color: $color-text-muted;
+    }
+  }
+
+  &__notification-toggle {
+    position: relative;
+
+    width: 44px;
+    height: 24px;
+
+    flex-shrink: 0;
+
+    padding: 0;
+
+    background-color: rgba($color-border-rgb, 0.8);
+
+    border: 0;
+    border-radius: 999px;
+
+    cursor: pointer;
+
+    transition:
+      background-color 0.2s ease,
+      opacity 0.2s ease;
+
+    &:focus-visible {
+      outline: 2px solid $color-primary;
+      outline-offset: 3px;
+    }
+
+    &:disabled {
+      cursor: default;
+
+      opacity: 0.55;
+    }
+
+    &--active {
+      background-color: $color-primary;
+
+      .settings__notification-toggle-thumb {
+        transform: translateX(20px);
+      }
+    }
+  }
+
+  &__notification-toggle-thumb {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+
+    width: 18px;
+    height: 18px;
+
+    background-color: #ffffff;
+
+    border-radius: 50%;
+
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.22);
+
+    transition: transform 0.2s ease;
+  }
+
+  &__threshold-card,
+  &__watched-card {
+    margin-top: 10px;
+    padding: 18px;
+  }
+
+  &__threshold-card {
+    position: relative;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+  }
+
+  &__threshold-content,
+  &__watched-content {
+    min-width: 0;
+
+    h3 {
+      color: $color-text;
+
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    p {
+      margin-top: 4px;
+
+      color: $color-text-muted;
+
+      font-size: 11px;
+      line-height: 1.5;
+    }
+  }
+
+  &__threshold-dropdown {
+    position: relative;
+
+    flex-shrink: 0;
+  }
+
+  &__threshold-trigger {
+    position: relative;
+
+    width: 102px;
+    height: 38px;
+
+    display: flex;
+    align-items: center;
+
+    padding: 0 31px 0 12px;
+
+    color: $color-text;
+
+    background-color: rgba($color-background-rgb, 0.42);
+
+    border: 1px solid rgba($color-border-rgb, 0.68);
+    border-radius: 9px;
+
+    font: inherit;
+
+    cursor: pointer;
+
+    transition:
+      border-color 0.2s ease,
+      background-color 0.2s ease;
+
+    strong {
+      margin-left: 5px;
+
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    &:hover {
+      border-color: rgba($color-primary-rgb, 0.48);
+    }
+
+    &:focus-visible {
+      outline: 2px solid $color-primary;
+      outline-offset: 2px;
+    }
+
+    &:disabled {
+      cursor: default;
+
+      opacity: 0.6;
+    }
+
+    &--open {
+      border-color: rgba($color-primary-rgb, 0.75);
+
+      background-color: rgba($color-primary-rgb, 0.05);
+
+      .settings__threshold-chevron {
+        transform: translateY(-50%) rotate(180deg);
+      }
+    }
+  }
+
+  &__threshold-prefix {
+    color: $color-text-muted;
+
+    font-size: 10px;
+  }
+
+  &__threshold-chevron {
+    position: absolute;
+    top: 50%;
+    right: 10px;
+
+    color: $color-text-muted;
+
+    pointer-events: none;
+
+    transform: translateY(-50%);
+
+    transition: transform 0.2s ease;
+  }
+
+  &__threshold-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 20;
+
+    width: 102px;
+
+    overflow: hidden;
+
+    padding: 5px;
+
+    background-color: $color-surface;
+
+    border: 1px solid rgba($color-border-rgb, 0.75);
+    border-radius: 10px;
+
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+  }
+
+  &__threshold-option {
+    width: 100%;
+    height: 34px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding-inline: 10px;
+
+    color: $color-text;
+    background-color: transparent;
+
+    border: 0;
+    border-radius: 7px;
+
+    font: inherit;
+    font-size: 11px;
+    font-weight: 500;
+
+    cursor: pointer;
+
+    transition:
+      color 0.15s ease,
+      background-color 0.15s ease;
+
+    &:hover {
+      color: $color-primary;
+
+      background-color: rgba($color-primary-rgb, 0.08);
+    }
+
+    &:focus-visible {
+      outline: 2px solid $color-primary;
+      outline-offset: -2px;
+    }
+
+    &--selected {
+      color: $color-primary;
+
+      background-color: rgba($color-primary-rgb, 0.11);
+
+      font-weight: 600;
+    }
+
+    svg {
+      flex-shrink: 0;
+    }
+  }
+
+  &__watched-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+
+    margin-top: 14px;
+  }
+
+  &__watched-option {
+    min-height: 36px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+
+    padding: 8px 12px;
+
+    color: $color-text;
+
+    background-color: rgba($color-background-rgb, 0.42);
+
+    border: 1px solid rgba($color-border-rgb, 0.62);
+    border-radius: 9px;
+
+    font: inherit;
+    font-size: 11px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition:
+      color 0.2s ease,
+      border-color 0.2s ease,
+      background-color 0.2s ease,
+      opacity 0.2s ease;
+
+    &:hover {
+      border-color: rgba($color-primary-rgb, 0.48);
+
+      background-color: rgba($color-primary-rgb, 0.05);
+    }
+
+    &:focus-visible {
+      outline: 2px solid $color-primary;
+      outline-offset: 2px;
+    }
+
+    &:disabled {
+      cursor: default;
+
+      opacity: 0.65;
+    }
+
+    &--selected {
+      color: $color-primary;
+
+      background-color: rgba($color-primary-rgb, 0.11);
+
+      border-color: rgba($color-primary-rgb, 0.65);
+    }
+
+    svg {
+      flex-shrink: 0;
+    }
+  }
+
+  @media (max-width: 700px) {
+    &__header {
+      margin-bottom: 24px;
+    }
+
+    &__title {
+      font-size: 27px;
+    }
+
+    &__section {
+      &--notifications {
+        margin-top: 26px;
+      }
+    }
+
+    &__appearance-card,
+    &__notification-card,
+    &__threshold-card,
+    &__watched-card {
+      padding: 15px;
+    }
+
+    &__theme-options {
+      max-width: 430px;
+      gap: 7px;
+    }
+
+    &__theme-option {
+      height: 44px;
+
+      padding: 0 27px 0 10px;
+    }
+  }
+
+  @media (max-width: 520px) {
+    &__header {
+      margin-bottom: 20px;
+    }
+
+    &__title {
+      font-size: 24px;
+    }
+
+    &__section-heading {
+      h2 {
+        font-size: 16px;
+      }
+    }
+
+    &__appearance-card,
+    &__notification-card,
+    &__threshold-card,
+    &__watched-card {
+      padding: 13px;
+
+      border-radius: 13px;
+    }
+
+    &__appearance-header {
+      margin-bottom: 12px;
+
+      h3 {
+        font-size: 14px;
+      }
+
+      p {
+        font-size: 10px;
+      }
+    }
+
+    &__theme-options {
+      max-width: 100%;
+      gap: 6px;
+    }
+
+    &__theme-option {
+      height: 42px;
+
+      gap: 5px;
+
+      padding: 0 23px 0 8px;
+    }
+
+    &__theme-icon {
+      width: 16px;
+      height: 16px;
+    }
+
+    &__theme-label {
+      font-size: 10px;
+    }
+
+    &__theme-check {
+      right: 6px;
+
+      width: 15px;
+      height: 15px;
+    }
+
+    &__notification-card {
+      gap: 14px;
+    }
+
+    &__notification-icon {
+      width: 38px;
+      height: 38px;
+    }
+
+    &__notification-content,
+    &__threshold-content,
+    &__watched-content {
+      h3 {
+        font-size: 14px;
+      }
+
+      p {
+        font-size: 10px;
+      }
+    }
+
+    &__watched-options {
+      gap: 7px;
+
+      margin-top: 12px;
+    }
+
+    &__watched-option {
+      min-height: 34px;
+
+      padding: 7px 10px;
+
+      font-size: 10px;
+    }
+  }
+
+  @media (max-width: 380px) {
+    &__appearance-card,
+    &__notification-card,
+    &__threshold-card,
+    &__watched-card {
+      padding: 12px;
+    }
+
+    &__theme-options {
+      gap: 5px;
+    }
+
+    &__theme-option {
+      height: 40px;
+
+      padding: 0 20px 0 7px;
+    }
+
+    &__theme-icon {
+      width: 15px;
+      height: 15px;
+    }
+
+    &__theme-label {
+      font-size: 9.5px;
+    }
+
+    &__theme-check {
+      right: 5px;
+
+      width: 14px;
+      height: 14px;
+    }
+
+    &__notification-main {
+      gap: 10px;
+    }
+
+    &__notification-toggle {
+      width: 40px;
+      height: 22px;
+
+      &--active {
+        .settings__notification-toggle-thumb {
+          transform: translateX(18px);
+        }
+      }
+    }
+
+    &__notification-toggle-thumb {
+      width: 16px;
+      height: 16px;
+    }
+
+    &__threshold-card {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    &__threshold-dropdown,
+    &__threshold-trigger,
+    &__threshold-menu {
+      width: 100%;
+    }
+  }
+}

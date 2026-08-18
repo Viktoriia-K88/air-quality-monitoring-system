@@ -1,10 +1,8 @@
-import { CurrentAirData, HistoryAirItem } from "@/types/air";
-import { Platform } from "react-native";
+import type { CurrentAirData, HistoryAirItem } from "@/types/air";
 
-const API_BASE_URL =
-  Platform.OS === "android"
-    ? "http://192.168.1.101:3000"
-    : "http://192.168.1.101:3000";
+const API_BASE_URL = "http://192.168.1.101:3000";
+
+export type HistoryRange = "last20" | "today" | "yesterday";
 
 export async function getCurrentAirData(
   district?: string,
@@ -14,18 +12,33 @@ export async function getCurrentAirData(
     : `${API_BASE_URL}/current`;
 
   const response = await fetch(url);
-  const data = await response.json();
-  return data;
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to load current air quality data. Status: ${response.status}.`,
+    );
+  }
+
+  return response.json();
 }
 
 export async function getHistoryAirData(
   district?: string,
+  range: HistoryRange = "last20",
 ): Promise<HistoryAirItem[]> {
   const url = district
-    ? `${API_BASE_URL}/history?district=${encodeURIComponent(district)}`
-    : `${API_BASE_URL}/history`;
+    ? `${API_BASE_URL}/history?district=${encodeURIComponent(
+        district,
+      )}&range=${range}`
+    : `${API_BASE_URL}/history?range=${range}`;
 
   const response = await fetch(url);
-  const data = await response.json();
-  return data;
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to load air quality history. Status: ${response.status}.`,
+    );
+  }
+
+  return response.json();
 }

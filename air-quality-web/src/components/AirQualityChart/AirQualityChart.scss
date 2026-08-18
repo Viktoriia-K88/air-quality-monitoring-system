@@ -1,0 +1,46 @@
+@use "../../styles/variables" as *;
+
+.air-quality-chart {
+  --chart-line: #{$color-primary};
+
+  --chart-grid: rgba(148, 163, 184, 0.13);
+  --chart-cursor: rgba(148, 163, 184, 0.35);
+
+  --chart-text: #{$color-text};
+  --chart-text-muted: #{$color-text-muted};
+
+  --chart-background: #{$color-background};
+  --chart-tooltip-background: #{$color-surface};
+  --chart-tooltip-border: #{$color-border};
+
+  width: 100%;
+  height: 235px;
+  min-width: 0;
+
+  &--message {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    color: $color-text-muted;
+
+    font-size: 14px;
+    text-align: center;
+  }
+
+  @media (max-width: 767px) {
+    height: 230px;
+  }
+
+  @media (max-width: 560px) {
+    height: 215px;
+
+    &--message {
+      font-size: 12px;
+    }
+  }
+
+  @media (max-width: 400px) {
+    height: 205px;
+  }
+}

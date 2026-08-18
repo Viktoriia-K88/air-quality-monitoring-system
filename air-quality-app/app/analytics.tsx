@@ -16,9 +16,11 @@ type AnalyticsItem = {
 
 export default function AnalyticsScreen() {
   const colors = useAppColors();
+
   const params = useLocalSearchParams();
 
   const district = typeof params.district === "string" ? params.district : "";
+
   const rawData = typeof params.data === "string" ? params.data : "[]";
 
   const historyData: AnalyticsItem[] = useMemo(() => {
@@ -47,12 +49,15 @@ export default function AnalyticsScreen() {
     }
 
     const values = historyData.map((item) => item.value);
+
     const sum = values.reduce((acc, item) => acc + item, 0);
 
     return {
       min: Math.min(...values),
       max: Math.max(...values),
+
       avg: Number((sum / values.length).toFixed(1)),
+
       count: values.length,
     };
   }, [historyData]);
@@ -61,19 +66,36 @@ export default function AnalyticsScreen() {
     <ScreenContainer>
       <View style={styles.header}>
         <Text
-          style={[styles.subtitleCentered, { color: colors.textSecondary }]}
+          style={[
+            styles.subtitleCentered,
+            {
+              color: colors.textSecondary,
+            },
+          ]}
         >
           {district} район
         </Text>
       </View>
 
       <AppCard>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>
+        <Text
+          style={[
+            styles.cardTitle,
+            {
+              color: colors.text,
+            },
+          ]}
+          accessibilityRole="header"
+        >
           Графік airIndex
         </Text>
 
         {chartData.length > 0 ? (
-          <View style={styles.chartWrapper}>
+          <View
+            style={styles.chartWrapper}
+            accessible
+            accessibilityLabel={`Графік AQI для ${district} району. Кількість вимірювань: ${chartData.length}.`}
+          >
             <LineChart
               data={chartData}
               areaChart
@@ -86,7 +108,10 @@ export default function AnalyticsScreen() {
               adjustToWidth
               noOfSections={5}
               maxValue={120}
-              yAxisTextStyle={{ color: colors.textSecondary, fontSize: 11 }}
+              yAxisTextStyle={{
+                color: colors.textSecondary,
+                fontSize: 11,
+              }}
               xAxisLabelTextStyle={{
                 color: colors.textSecondary,
                 fontSize: 11,
@@ -105,52 +130,135 @@ export default function AnalyticsScreen() {
             />
           </View>
         ) : (
-          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+          <Text
+            style={[
+              styles.emptyText,
+              {
+                color: colors.textSecondary,
+              },
+            ]}
+          >
             Дані для графіка відсутні
           </Text>
         )}
       </AppCard>
 
       <View style={styles.statsGrid}>
-        <View style={styles.half}>
+        <View
+          style={styles.half}
+          accessible
+          accessibilityLabel={`Середнє AQI: ${stats.avg}`}
+        >
           <AppCard>
-            <Text style={[styles.statValue, { color: colors.text }]}>
+            <Text
+              style={[
+                styles.statValue,
+                {
+                  color: colors.text,
+                },
+              ]}
+            >
               {stats.avg}
             </Text>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+
+            <Text
+              style={[
+                styles.statLabel,
+                {
+                  color: colors.textSecondary,
+                },
+              ]}
+            >
               Середнє
             </Text>
           </AppCard>
         </View>
 
-        <View style={styles.half}>
+        <View
+          style={styles.half}
+          accessible
+          accessibilityLabel={`Мінімальне AQI: ${stats.min}`}
+        >
           <AppCard>
-            <Text style={[styles.statValue, { color: colors.text }]}>
+            <Text
+              style={[
+                styles.statValue,
+                {
+                  color: colors.text,
+                },
+              ]}
+            >
               {stats.min}
             </Text>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+
+            <Text
+              style={[
+                styles.statLabel,
+                {
+                  color: colors.textSecondary,
+                },
+              ]}
+            >
               Мінімум
             </Text>
           </AppCard>
         </View>
 
-        <View style={styles.half}>
+        <View
+          style={styles.half}
+          accessible
+          accessibilityLabel={`Максимальне AQI: ${stats.max}`}
+        >
           <AppCard>
-            <Text style={[styles.statValue, { color: colors.text }]}>
+            <Text
+              style={[
+                styles.statValue,
+                {
+                  color: colors.text,
+                },
+              ]}
+            >
               {stats.max}
             </Text>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+
+            <Text
+              style={[
+                styles.statLabel,
+                {
+                  color: colors.textSecondary,
+                },
+              ]}
+            >
               Максимум
             </Text>
           </AppCard>
         </View>
 
-        <View style={styles.half}>
+        <View
+          style={styles.half}
+          accessible
+          accessibilityLabel={`Кількість записів: ${stats.count}`}
+        >
           <AppCard>
-            <Text style={[styles.statValue, { color: colors.text }]}>
+            <Text
+              style={[
+                styles.statValue,
+                {
+                  color: colors.text,
+                },
+              ]}
+            >
               {stats.count}
             </Text>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+
+            <Text
+              style={[
+                styles.statLabel,
+                {
+                  color: colors.textSecondary,
+                },
+              ]}
+            >
               Записи
             </Text>
           </AppCard>
@@ -162,41 +270,56 @@ export default function AnalyticsScreen() {
 
 const styles = StyleSheet.create({
   header: {
-    marginBottom: 8,
     alignItems: "center",
+
+    marginBottom: 8,
   },
+
   subtitleCentered: {
     fontSize: 18,
     textAlign: "center",
   },
+
   cardTitle: {
+    marginBottom: 14,
+
     fontSize: 18,
     fontWeight: "700",
-    marginBottom: 14,
   },
+
   chartWrapper: {
     overflow: "hidden",
+
     borderRadius: 14,
   },
+
   emptyText: {
+    paddingVertical: 10,
+
     fontSize: 15,
     textAlign: "center",
-    paddingVertical: 10,
   },
+
   statsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
+
     marginHorizontal: -6,
   },
+
   half: {
     width: "50%",
+
     paddingHorizontal: 6,
   },
+
   statValue: {
+    marginBottom: 6,
+
     fontSize: 30,
     fontWeight: "800",
-    marginBottom: 6,
   },
+
   statLabel: {
     fontSize: 14,
   },

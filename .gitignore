@@ -9,3 +9,5 @@ air-quality-app/google-services.json
 air-quality-app/constants/mapbox.ts
 air-quality-app/app.json.backup
 .env
+.env.*
+!.env.example

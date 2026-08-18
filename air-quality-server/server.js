@@ -1,9 +1,23 @@
+require("dotenv").config();
+
 const express = require("express");
+const cors = require("cors");
+
 const airRoutes = require("./routes/airRoutes");
-const db = require("./db/database");
+
+require("./db/database");
 
 const app = express();
-const PORT = 3000;
+
+const PORT = Number(process.env.PORT) || 3000;
+
+const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
+
+app.use(
+  cors({
+    origin: CLIENT_URL,
+  }),
+);
 
 app.use(express.json());
 
@@ -14,5 +28,5 @@ app.get("/", (req, res) => {
 app.use("/", airRoutes);
 
 app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+  console.log(`Server is running on port ${PORT}`);
 });

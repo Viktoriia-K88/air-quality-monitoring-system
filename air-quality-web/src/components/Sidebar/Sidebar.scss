@@ -1,0 +1,313 @@
+@use "../../styles/variables" as *;
+
+.sidebar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+
+  width: 220px;
+  height: 100vh;
+  height: 100dvh;
+
+  flex-shrink: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  padding: 28px 16px;
+
+  background-color: $color-surface;
+
+  border-right: 1px solid rgba($color-border-rgb, 0.65);
+
+  transition:
+    width 0.25s ease,
+    transform 0.25s ease;
+
+  // header
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    margin-bottom: 44px;
+  }
+
+  &__brand {
+    min-width: 0;
+
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    padding-inline: 10px;
+
+    color: $color-text;
+
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.2;
+
+    white-space: nowrap;
+  }
+
+  &__brand-icon {
+    flex-shrink: 0;
+
+    color: $color-primary;
+  }
+
+  &__brand-text {
+    white-space: nowrap;
+  }
+
+  &__close-button {
+    display: none;
+
+    width: 38px;
+    height: 38px;
+
+    place-items: center;
+
+    flex-shrink: 0;
+
+    padding: 0;
+
+    color: $color-text-muted;
+    background-color: transparent;
+
+    border: 1px solid transparent;
+    border-radius: 9px;
+
+    cursor: pointer;
+
+    transition:
+      color 0.2s ease,
+      background-color 0.2s ease,
+      border-color 0.2s ease;
+
+    &:hover {
+      color: $color-text;
+
+      background-color: rgba($color-surface-light-rgb, 0.5);
+
+      border-color: rgba($color-border-rgb, 0.55);
+    }
+
+    &:focus-visible {
+      outline: 2px solid $color-primary;
+      outline-offset: 2px;
+    }
+  }
+
+  // navigation
+
+  &__nav {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  &__link {
+    min-height: 46px;
+
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    padding-inline: 14px;
+
+    color: $color-text-muted;
+
+    border: 1px solid transparent;
+    border-radius: 10px;
+
+    white-space: nowrap;
+
+    transition:
+      color 0.2s ease,
+      background-color 0.2s ease,
+      border-color 0.2s ease;
+
+    svg {
+      flex-shrink: 0;
+    }
+
+    &:hover {
+      color: $color-text;
+
+      background-color: rgba($color-surface-light-rgb, 0.65);
+    }
+
+    &:focus-visible {
+      outline: 2px solid $color-primary;
+      outline-offset: 2px;
+    }
+
+    &--active {
+      color: $color-text;
+
+      background-color: rgba($color-primary-rgb, 0.18);
+
+      border-color: rgba($color-primary-rgb, 0.32);
+
+      svg {
+        color: $color-primary;
+      }
+    }
+  }
+
+  &__settings {
+    margin-top: auto;
+  }
+}
+
+// sidebar
+
+@media (min-width: 769px) and (max-width: 1179px) {
+  .sidebar {
+    width: 76px;
+
+    padding: 28px 10px;
+
+    &__header {
+      justify-content: center;
+
+      margin-bottom: 44px;
+    }
+
+    &__brand {
+      justify-content: center;
+
+      padding: 0;
+    }
+
+    &__brand-text {
+      display: none;
+    }
+
+    &__link {
+      justify-content: center;
+
+      gap: 0;
+
+      padding-inline: 0;
+    }
+
+    &__link-text {
+      display: none;
+    }
+  }
+}
+
+// mobile
+
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+
+    z-index: 1000;
+
+    width: min(82vw, 290px);
+
+    height: 100vh;
+    height: 100dvh;
+
+    padding: 20px 16px;
+
+    overflow-y: auto;
+
+    visibility: hidden;
+    pointer-events: none;
+
+    transform: translateX(-100%);
+
+    box-shadow: 18px 0 40px rgba(0, 0, 0, 0.2);
+
+    transition:
+      transform 0.25s ease,
+      visibility 0s linear 0.25s;
+
+    &--open {
+      visibility: visible;
+      pointer-events: auto;
+
+      transform: translateX(0);
+
+      transition-delay: 0s;
+    }
+
+    &__header {
+      margin-bottom: 32px;
+    }
+
+    &__brand {
+      padding-inline: 8px;
+    }
+
+    &__brand-text {
+      display: inline;
+    }
+
+    &__close-button {
+      display: grid;
+    }
+
+    &__link {
+      min-height: 48px;
+
+      justify-content: flex-start;
+      gap: 12px;
+
+      padding-inline: 14px;
+    }
+
+    &__link-text {
+      display: inline;
+    }
+  }
+}
+
+// small mobile
+
+@media (max-width: 480px) {
+  .sidebar {
+    width: min(86vw, 280px);
+
+    padding: 18px 14px;
+
+    &__brand {
+      font-size: 17px;
+    }
+  }
+}
+
+// very small mobile
+
+@media (max-width: 380px) {
+  .sidebar {
+    width: min(88vw, 270px);
+
+    padding: 16px 12px;
+
+    &__header {
+      margin-bottom: 28px;
+    }
+
+    &__brand {
+      padding-inline: 6px;
+
+      font-size: 16px;
+    }
+
+    &__link {
+      min-height: 46px;
+
+      padding-inline: 12px;
+    }
+  }
+}
