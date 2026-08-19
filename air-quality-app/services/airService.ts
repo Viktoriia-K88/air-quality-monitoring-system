@@ -1,6 +1,10 @@
 import type { CurrentAirData, HistoryAirItem } from "@/types/air";
 
-const API_BASE_URL = "http://192.168.1.101:3000";
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
+
+if (!API_BASE_URL) {
+  throw new Error("Missing EXPO_PUBLIC_API_URL.");
+}
 
 export type HistoryRange = "last20" | "today" | "yesterday";
 
