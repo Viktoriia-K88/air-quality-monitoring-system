@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import mapboxgl from "mapbox-gl";
+import * as mapboxgl from "mapbox-gl/esm";
 
 import { districtCoordinates } from "../../constants/districtMap";
 import type { DistrictKey } from "../../constants/districts";
