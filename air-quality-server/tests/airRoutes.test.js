@@ -1,3 +1,5 @@
+process.env.INGEST_API_KEY = "test-ingest-key";
+
 const request = require("supertest");
 const express = require("express");
 
@@ -167,14 +169,36 @@ describe("GET /history", () => {
 });
 
 describe("POST /air-data", () => {
-  test("returns 400 when a required field is missing", async () => {
+  test("returns 401 when API key is missing", async () => {
     const response = await request(app).post("/air-data").send({
       city: "Львів",
       district: "Франківський",
       airIndex: 70,
       pm25: 20,
+      pm10: 35,
       updatedAt: "2026-08-18T10:00:00.000Z",
     });
+
+    expect(response.status).toBe(401);
+
+    expect(response.body).toEqual({
+      message: "Unauthorized.",
+    });
+
+    expect(db.run).not.toHaveBeenCalled();
+  });
+
+  test("returns 400 when a required field is missing", async () => {
+    const response = await request(app)
+      .post("/air-data")
+      .set("x-api-key", "test-ingest-key")
+      .send({
+        city: "Львів",
+        district: "Франківський",
+        airIndex: 70,
+        pm25: 20,
+        updatedAt: "2026-08-18T10:00:00.000Z",
+      });
 
     expect(response.status).toBe(400);
 
@@ -203,7 +227,10 @@ describe("POST /air-data", () => {
       updatedAt: "2026-08-18T10:00:00.000Z",
     };
 
-    const response = await request(app).post("/air-data").send(airData);
+    const response = await request(app)
+      .post("/air-data")
+      .set("x-api-key", "test-ingest-key")
+      .send(airData);
 
     expect(response.status).toBe(201);
 

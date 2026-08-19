@@ -1,7 +1,12 @@
 require("dotenv").config();
 
 const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:3000";
+const INGEST_API_KEY = process.env.INGEST_API_KEY;
 const UPDATE_INTERVAL_MS = 10_000;
+
+if (!INGEST_API_KEY) {
+  throw new Error("Missing INGEST_API_KEY in .env.");
+}
 
 const districts = [
   {
@@ -191,6 +196,7 @@ async function sendDistrictData(district, updatedAt) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "x-api-key": INGEST_API_KEY,
       },
       body: JSON.stringify(data),
     });

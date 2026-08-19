@@ -12,6 +12,37 @@ const {
 
 const ALERT_THRESHOLD = 80;
 
+const ALLOWED_DISTRICTS = [
+  "Галицький",
+  "Залізничний",
+  "Личаківський",
+  "Сихівський",
+  "Франківський",
+  "Шевченківський",
+];
+
+function isValidDistrict(value) {
+  return typeof value === "string" && ALLOWED_DISTRICTS.includes(value);
+}
+
+function isValidAirValue(value) {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0;
+}
+
+function isValidDate(value) {
+  return typeof value === "string" && !Number.isNaN(Date.parse(value));
+}
+
+function isValidThreshold(value) {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0;
+}
+
+function isValidWatchDistricts(value) {
+  return (
+    Array.isArray(value) && value.every((district) => isValidDistrict(district))
+  );
+}
+
 function formatTime(value) {
   const date = new Date(value);
 
@@ -173,6 +204,23 @@ router.get("/history", (req, res) => {
 });
 
 router.post("/air-data", (req, res) => {
+  const ingestApiKey = process.env.INGEST_API_KEY;
+  const requestApiKey = req.get("x-api-key");
+
+  if (!ingestApiKey) {
+    console.error("Missing INGEST_API_KEY configuration.");
+
+    return res.status(500).json({
+      message: "Server configuration error.",
+    });
+  }
+
+  if (!requestApiKey || requestApiKey !== ingestApiKey) {
+    return res.status(401).json({
+      message: "Unauthorized.",
+    });
+  }
+
   if (process.env.NODE_ENV !== "production") {
     console.log("POST /air-data", req.body);
   }
@@ -190,6 +238,34 @@ router.post("/air-data", (req, res) => {
     return res.status(400).json({
       message:
         "Missing required fields: city, district, airIndex, pm25, pm10, updatedAt",
+    });
+  }
+
+  if (city !== "Львів") {
+    return res.status(400).json({
+      message: "Invalid city.",
+    });
+  }
+
+  if (!isValidDistrict(district)) {
+    return res.status(400).json({
+      message: "Invalid district.",
+    });
+  }
+
+  if (
+    !isValidAirValue(airIndex) ||
+    !isValidAirValue(pm25) ||
+    !isValidAirValue(pm10)
+  ) {
+    return res.status(400).json({
+      message: "airIndex, pm25 and pm10 must be valid non-negative numbers.",
+    });
+  }
+
+  if (!isValidDate(updatedAt)) {
+    return res.status(400).json({
+      message: "updatedAt must be a valid date.",
     });
   }
 
@@ -279,6 +355,36 @@ router.post("/register-push-token", (req, res) => {
     });
   }
 
+  if (typeof token !== "string" || !token.trim()) {
+    return res.status(400).json({
+      message: "token must be a non-empty string.",
+    });
+  }
+
+  if (!isValidDistrict(primaryDistrict)) {
+    return res.status(400).json({
+      message: "Invalid primaryDistrict.",
+    });
+  }
+
+  if (!isValidWatchDistricts(watchDistricts)) {
+    return res.status(400).json({
+      message: "watchDistricts contains an invalid district.",
+    });
+  }
+
+  if (!isValidThreshold(threshold)) {
+    return res.status(400).json({
+      message: "threshold must be a valid non-negative number.",
+    });
+  }
+
+  if (typeof notificationsEnabled !== "boolean") {
+    return res.status(400).json({
+      message: "notificationsEnabled must be a boolean.",
+    });
+  }
+
   db.run(
     `
       INSERT INTO push_subscriptions (
@@ -343,15 +449,37 @@ router.post("/web-push/subscribe", (req, res) => {
     });
   }
 
-  if (!Array.isArray(watchDistricts)) {
+  if (
+    typeof endpoint !== "string" ||
+    typeof p256dh !== "string" ||
+    typeof auth !== "string"
+  ) {
     return res.status(400).json({
-      message: "watchDistricts must be an array.",
+      message: "Invalid Web Push subscription fields.",
     });
   }
 
-  if (typeof threshold !== "number" || !Number.isFinite(threshold)) {
+  if (!isValidDistrict(primaryDistrict)) {
     return res.status(400).json({
-      message: "threshold must be a valid number.",
+      message: "Invalid primaryDistrict.",
+    });
+  }
+
+  if (!isValidWatchDistricts(watchDistricts)) {
+    return res.status(400).json({
+      message: "watchDistricts contains an invalid district.",
+    });
+  }
+
+  if (!isValidThreshold(threshold)) {
+    return res.status(400).json({
+      message: "threshold must be a valid non-negative number.",
+    });
+  }
+
+  if (typeof notificationsEnabled !== "boolean") {
+    return res.status(400).json({
+      message: "notificationsEnabled must be a boolean.",
     });
   }
 
@@ -418,13 +546,19 @@ router.patch("/web-push/preferences", (req, res) => {
     });
   }
 
+  if (typeof endpoint !== "string") {
+    return res.status(400).json({
+      message: "Web Push endpoint must be a string.",
+    });
+  }
+
   const updates = [];
   const params = [];
 
   if (primaryDistrict !== undefined) {
-    if (typeof primaryDistrict !== "string" || !primaryDistrict.trim()) {
+    if (!isValidDistrict(primaryDistrict)) {
       return res.status(400).json({
-        message: "primaryDistrict must be a non-empty string.",
+        message: "Invalid primaryDistrict.",
       });
     }
 
@@ -433,12 +567,9 @@ router.patch("/web-push/preferences", (req, res) => {
   }
 
   if (watchDistricts !== undefined) {
-    if (
-      !Array.isArray(watchDistricts) ||
-      !watchDistricts.every((district) => typeof district === "string")
-    ) {
+    if (!isValidWatchDistricts(watchDistricts)) {
       return res.status(400).json({
-        message: "watchDistricts must be an array of strings.",
+        message: "watchDistricts contains an invalid district.",
       });
     }
 
@@ -447,9 +578,9 @@ router.patch("/web-push/preferences", (req, res) => {
   }
 
   if (threshold !== undefined) {
-    if (typeof threshold !== "number" || !Number.isFinite(threshold)) {
+    if (!isValidThreshold(threshold)) {
       return res.status(400).json({
-        message: "threshold must be a valid number.",
+        message: "threshold must be a valid non-negative number.",
       });
     }
 
@@ -512,6 +643,12 @@ router.post("/web-push/status", (req, res) => {
     });
   }
 
+  if (typeof endpoint !== "string") {
+    return res.status(400).json({
+      message: "Web Push endpoint must be a string.",
+    });
+  }
+
   db.get(
     `
       SELECT
@@ -563,6 +700,12 @@ router.post("/web-push/unsubscribe", (req, res) => {
   if (!endpoint) {
     return res.status(400).json({
       message: "Web Push endpoint is required.",
+    });
+  }
+
+  if (typeof endpoint !== "string") {
+    return res.status(400).json({
+      message: "Web Push endpoint must be a string.",
     });
   }
 
