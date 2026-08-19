@@ -83,8 +83,10 @@ router.get("/current", (req, res) => {
 
   db.get(query, params, (err, row) => {
     if (err) {
+      console.error("Failed to get current air data:", err);
+
       return res.status(500).json({
-        message: err.message,
+        message: "Internal server error.",
       });
     }
 
@@ -184,8 +186,10 @@ router.get("/history", (req, res) => {
 
   db.all(query, params, (err, rows) => {
     if (err) {
+      console.error("Failed to get air history:", err);
+
       return res.status(500).json({
-        message: err.message,
+        message: "Internal server error.",
       });
     }
 
@@ -301,8 +305,10 @@ router.post("/air-data", (req, res) => {
     ],
     async function (err) {
       if (err) {
+        console.error("Failed to save air data:", err);
+
         return res.status(500).json({
-          message: err.message,
+          message: "Internal server error.",
         });
       }
 
@@ -411,8 +417,10 @@ router.post("/register-push-token", (req, res) => {
     ],
     function (err) {
       if (err) {
+        console.error("Failed to register push token:", err);
+
         return res.status(500).json({
-          message: err.message,
+          message: "Internal server error.",
         });
       }
 
@@ -519,8 +527,10 @@ router.post("/web-push/subscribe", (req, res) => {
     ],
     function (err) {
       if (err) {
+        console.error("Failed to save Web Push subscription:", err);
+
         return res.status(500).json({
-          message: err.message,
+          message: "Internal server error.",
         });
       }
 
@@ -616,8 +626,10 @@ router.patch("/web-push/preferences", (req, res) => {
     params,
     function (err) {
       if (err) {
+        console.error("Failed to update Web Push preferences:", err);
+
         return res.status(500).json({
-          message: err.message,
+          message: "Internal server error.",
         });
       }
 
@@ -662,8 +674,10 @@ router.post("/web-push/status", (req, res) => {
     [endpoint],
     (err, row) => {
       if (err) {
+        console.error("Failed to get Web Push status:", err);
+
         return res.status(500).json({
-          message: err.message,
+          message: "Internal server error.",
         });
       }
 
@@ -717,8 +731,10 @@ router.post("/web-push/unsubscribe", (req, res) => {
     [endpoint],
     function (err) {
       if (err) {
+        console.error("Failed to remove Web Push subscription:", err);
+
         return res.status(500).json({
-          message: err.message,
+          message: "Internal server error.",
         });
       }
 
