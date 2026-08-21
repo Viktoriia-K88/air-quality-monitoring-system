@@ -1,20 +1,23 @@
-const sqlite3 = require("sqlite3").verbose();
-const path = require("path");
+require("dotenv").config();
 
-const dbPath = path.join(__dirname, "air_quality.db");
+const { createClient } = require("@libsql/client");
 
-const db = new sqlite3.Database(dbPath, (err) => {
-  if (err) {
-    console.error("Помилка підключення до SQLite:", err.message);
-  } else {
-    console.log("Підключено до SQLite");
-  }
+const databaseUrl = process.env.TURSO_DATABASE_URL;
+const authToken = process.env.TURSO_AUTH_TOKEN;
+
+if (!databaseUrl || !authToken) {
+  throw new Error("Missing TURSO_DATABASE_URL or TURSO_AUTH_TOKEN in .env.");
+}
+
+const client = createClient({
+  url: databaseUrl,
+  authToken,
 });
 
-db.serialize(() => {
-  // Air quality measurements
+let initializationError = null;
 
-  db.run(`
+async function initializeDatabase() {
+  await client.execute(`
     CREATE TABLE IF NOT EXISTS air_measurements (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       city TEXT NOT NULL,
@@ -28,9 +31,7 @@ db.serialize(() => {
     )
   `);
 
-  // Expo Push subscriptions for the mobile application
-
-  db.run(`
+  await client.execute(`
     CREATE TABLE IF NOT EXISTS push_subscriptions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       token TEXT NOT NULL UNIQUE,
@@ -41,9 +42,7 @@ db.serialize(() => {
     )
   `);
 
-  // Web Push subscriptions for the browser
-
-  db.run(`
+  await client.execute(`
     CREATE TABLE IF NOT EXISTS web_push_subscriptions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       endpoint TEXT NOT NULL UNIQUE,
@@ -57,60 +56,148 @@ db.serialize(() => {
     )
   `);
 
-  // Ensure older databases contain fields added in later versions
+  // ensure older databases contain fields added in later versions
 
-  db.all(`PRAGMA table_info(air_measurements)`, [], (err, rows) => {
-    if (err) {
-      console.error("Помилка перевірки структури таблиці:", err.message);
-      return;
-    }
+  const tableInfo = await client.execute("PRAGMA table_info(air_measurements)");
 
-    const hasDistrict = rows.some((row) => row.name === "district");
-    const hasPm25 = rows.some((row) => row.name === "pm25");
-    const hasPm10 = rows.some((row) => row.name === "pm10");
+  const columns = new Set(tableInfo.rows.map((row) => row.name));
 
-    if (!hasDistrict) {
-      db.run(
-        `
-          ALTER TABLE air_measurements
-          ADD COLUMN district TEXT NOT NULL DEFAULT 'Сихівський'
-        `,
-        (alterErr) => {
-          if (alterErr) {
-            console.error("Помилка додавання поля district:", alterErr.message);
-          }
-        },
-      );
-    }
+  if (!columns.has("district")) {
+    await client.execute(`
+      ALTER TABLE air_measurements
+      ADD COLUMN district TEXT NOT NULL DEFAULT 'Сихівський'
+    `);
+  }
 
-    if (!hasPm25) {
-      db.run(
-        `
-          ALTER TABLE air_measurements
-          ADD COLUMN pm25 INTEGER
-        `,
-        (alterErr) => {
-          if (alterErr) {
-            console.error("Помилка додавання поля pm25:", alterErr.message);
-          }
-        },
-      );
-    }
+  if (!columns.has("pm25")) {
+    await client.execute(`
+      ALTER TABLE air_measurements
+      ADD COLUMN pm25 INTEGER
+    `);
+  }
 
-    if (!hasPm10) {
-      db.run(
-        `
-          ALTER TABLE air_measurements
-          ADD COLUMN pm10 INTEGER
-        `,
-        (alterErr) => {
-          if (alterErr) {
-            console.error("Помилка додавання поля pm10:", alterErr.message);
-          }
-        },
-      );
-    }
-  });
+  if (!columns.has("pm10")) {
+    await client.execute(`
+      ALTER TABLE air_measurements
+      ADD COLUMN pm10 INTEGER
+    `);
+  }
+
+  console.log("Connected to Turso database");
+}
+
+const databaseReady = initializeDatabase().catch((error) => {
+  initializationError = error;
+  console.error("Failed to initialize Turso database:", error.message);
 });
+
+async function waitForDatabase() {
+  await databaseReady;
+
+  if (initializationError) {
+    throw initializationError;
+  }
+}
+
+function normalizeArguments(params, callback) {
+  if (typeof params === "function") {
+    return {
+      params: [],
+      callback: params,
+    };
+  }
+
+  return {
+    params: params ?? [],
+    callback,
+  };
+}
+
+async function executeQuery(query, params) {
+  await waitForDatabase();
+
+  return client.execute({
+    sql: query,
+    args: params,
+  });
+}
+
+const db = {
+  get(query, params, callback) {
+    const normalized = normalizeArguments(params, callback);
+
+    const operation = executeQuery(query, normalized.params).then((result) => {
+      const row = result.rows[0];
+
+      return row ? { ...row } : undefined;
+    });
+
+    if (!normalized.callback) {
+      return operation;
+    }
+
+    operation
+      .then((row) => {
+        normalized.callback(null, row);
+      })
+      .catch((error) => {
+        normalized.callback(error);
+      });
+  },
+
+  all(query, params, callback) {
+    const normalized = normalizeArguments(params, callback);
+
+    const operation = executeQuery(query, normalized.params).then((result) =>
+      result.rows.map((row) => ({ ...row })),
+    );
+
+    if (!normalized.callback) {
+      return operation;
+    }
+
+    operation
+      .then((rows) => {
+        normalized.callback(null, rows);
+      })
+      .catch((error) => {
+        normalized.callback(error);
+      });
+  },
+
+  run(query, params, callback) {
+    const normalized = normalizeArguments(params, callback);
+
+    const operation = executeQuery(query, normalized.params).then((result) => ({
+      lastID:
+        result.lastInsertRowid === undefined
+          ? undefined
+          : Number(result.lastInsertRowid),
+      changes: result.rowsAffected,
+    }));
+
+    if (!normalized.callback) {
+      return operation;
+    }
+
+    operation
+      .then((context) => {
+        normalized.callback.call(context, null);
+      })
+      .catch((error) => {
+        normalized.callback.call(
+          {
+            lastID: undefined,
+            changes: 0,
+          },
+          error,
+        );
+      });
+  },
+
+  serialize(callback) {
+    callback();
+  },
+};
 
 module.exports = db;
