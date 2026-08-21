@@ -10,6 +10,7 @@ require("./db/database");
 const app = express();
 
 const PORT = Number(process.env.PORT) || 3000;
+const HOST = "0.0.0.0";
 
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
 
@@ -27,6 +28,10 @@ app.get("/", (req, res) => {
 
 app.use("/", airRoutes);
 
-app.listen(PORT, () => {
+app.listen(PORT, HOST, () => {
   console.log(`Server is running on port ${PORT}`);
+
+  if (process.env.RUN_SIMULATOR === "true") {
+    require("./simulator");
+  }
 });
