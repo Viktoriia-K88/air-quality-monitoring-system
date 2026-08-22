@@ -10,7 +10,11 @@ import { getAirStatus } from "@/utils/airStatus";
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 
-const API_BASE_URL = "http://192.168.1.101:3000";
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
+
+if (!API_BASE_URL) {
+  throw new Error("Missing EXPO_PUBLIC_API_URL.");
+}
 
 export default function HomeScreen() {
   const colors = useAppColors();
