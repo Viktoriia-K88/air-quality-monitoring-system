@@ -1,45 +1,94 @@
 import AppCard from "@/components/AppCard";
 import ScreenContainer from "@/components/ScreenContainer";
 import { useAppColors } from "@/hooks/useAppColors";
+import { getHistoryAirData, type HistoryRange } from "@/services/airService";
+import type { HistoryAirItem } from "@/types/air";
+
 import { useLocalSearchParams } from "expo-router";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { LineChart } from "react-native-gifted-charts";
 
-type AnalyticsItem = {
-  id: string;
-  time: string;
-  value: number;
-  updatedAt: string;
-  district: string;
-};
+const MAX_CHART_POINTS = 120;
 
 export default function AnalyticsScreen() {
   const colors = useAppColors();
-
   const params = useLocalSearchParams();
 
   const district = typeof params.district === "string" ? params.district : "";
 
-  const rawData = typeof params.data === "string" ? params.data : "[]";
+  const range: HistoryRange =
+    params.range === "today" ||
+    params.range === "yesterday" ||
+    params.range === "last20"
+      ? params.range
+      : "last20";
 
-  const historyData: AnalyticsItem[] = useMemo(() => {
-    try {
-      return JSON.parse(rawData);
-    } catch {
-      return [];
+  const [historyData, setHistoryData] = useState<HistoryAirItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // load analytics data
+
+  useEffect(() => {
+    if (!district) {
+      setLoading(false);
+      return;
     }
-  }, [rawData]);
+
+    let isActive = true;
+
+    async function loadData() {
+      try {
+        const data = await getHistoryAirData(district, range);
+
+        if (isActive) {
+          setHistoryData(data);
+        }
+      } catch (error) {
+        console.log("Помилка завантаження analytics data:", error);
+      } finally {
+        if (isActive) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadData();
+
+    return () => {
+      isActive = false;
+    };
+  }, [district, range]);
+
+  // reduce chart points
 
   const chartData = useMemo(() => {
-    return historyData.map((item) => ({
+    if (historyData.length === 0) {
+      return [];
+    }
+
+    let dataForChart = historyData;
+
+    if (historyData.length > MAX_CHART_POINTS) {
+      const step = (historyData.length - 1) / (MAX_CHART_POINTS - 1);
+
+      dataForChart = Array.from({ length: MAX_CHART_POINTS }, (_, index) => {
+        const itemIndex = Math.round(index * step);
+
+        return historyData[itemIndex];
+      });
+    }
+
+    return dataForChart.map((item, index) => ({
       value: item.value,
-      label: item.time,
+      label: dataForChart.length > 30 && index % 10 !== 0 ? "" : item.time,
     }));
   }, [historyData]);
 
+  // calculate statistics
+
   const stats = useMemo(() => {
-    if (!historyData.length) {
+    if (historyData.length === 0) {
       return {
         min: 0,
         max: 0,
@@ -48,19 +97,54 @@ export default function AnalyticsScreen() {
       };
     }
 
-    const values = historyData.map((item) => item.value);
+    let min = historyData[0].value;
+    let max = historyData[0].value;
+    let sum = 0;
 
-    const sum = values.reduce((acc, item) => acc + item, 0);
+    for (const item of historyData) {
+      if (item.value < min) {
+        min = item.value;
+      }
+
+      if (item.value > max) {
+        max = item.value;
+      }
+
+      sum += item.value;
+    }
 
     return {
-      min: Math.min(...values),
-      max: Math.max(...values),
-
-      avg: Number((sum / values.length).toFixed(1)),
-
-      count: values.length,
+      min,
+      max,
+      avg: Number((sum / historyData.length).toFixed(1)),
+      count: historyData.length,
     };
   }, [historyData]);
+
+  if (loading) {
+    return (
+      <View
+        style={[
+          styles.centered,
+          {
+            backgroundColor: colors.background,
+          },
+        ]}
+      >
+        <Text
+          style={[
+            styles.message,
+            {
+              color: colors.textSecondary,
+            },
+          ]}
+          accessibilityLiveRegion="polite"
+        >
+          Завантаження...
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <ScreenContainer>
@@ -94,14 +178,14 @@ export default function AnalyticsScreen() {
           <View
             style={styles.chartWrapper}
             accessible
-            accessibilityLabel={`Графік AQI для ${district} району. Кількість вимірювань: ${chartData.length}.`}
+            accessibilityLabel={`Графік AQI для ${district} району. Кількість вимірювань: ${historyData.length}.`}
           >
             <LineChart
               data={chartData}
               areaChart
               curved
               thickness={3}
-              hideDataPoints={false}
+              hideDataPoints={chartData.length > 30}
               initialSpacing={2}
               endSpacing={2}
               spacing={42}
@@ -269,9 +353,18 @@ export default function AnalyticsScreen() {
 }
 
 const styles = StyleSheet.create({
+  centered: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  message: {
+    fontSize: 18,
+  },
+
   header: {
     alignItems: "center",
-
     marginBottom: 8,
   },
 
@@ -282,20 +375,17 @@ const styles = StyleSheet.create({
 
   cardTitle: {
     marginBottom: 14,
-
     fontSize: 18,
     fontWeight: "700",
   },
 
   chartWrapper: {
     overflow: "hidden",
-
     borderRadius: 14,
   },
 
   emptyText: {
     paddingVertical: 10,
-
     fontSize: 15,
     textAlign: "center",
   },
@@ -303,19 +393,16 @@ const styles = StyleSheet.create({
   statsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-
     marginHorizontal: -6,
   },
 
   half: {
     width: "50%",
-
     paddingHorizontal: 6,
   },
 
   statValue: {
     marginBottom: 6,
-
     fontSize: 30,
     fontWeight: "800",
   },
